@@ -2,40 +2,54 @@
 
 A modular, self-hosted financial research terminal for stocks, ETFs, indices, forex, crypto, commodities, and derivatives.
 
-## Phase 0 — Foundation
+## Phase 1 — Market Data Engine
 
-Trade Box is being built in small, testable phases. The first phase establishes the application shell and engineering conventions before market-data integrations are added.
+Phase 1 introduces a normalized, server-side market-data boundary. The dashboard currently reads stock quotes through the provider layer and exposes historical OHLCV through an API route for the charting phase.
 
 ### Reference projects
 
-- OpenTerminal — terminal-style dark UI, keyboard-first navigation, widget-oriented workspace, resilient provider architecture.
-- India Stock Dashboard — practical financial dashboard structure for portfolio, market overview, charts, screener, and research workflows.
-- OpenTerminalUI — terminal shell, persistent workspaces, multi-market architecture, and extensible financial-terminal surface design.
+- OpenTerminal — provider matrix, public market-data sources, historical candles, symbol search, and resilient provider architecture. Its README documents Nasdaq/Yahoo/Stooq and TradingView as different provider roles. See the repository for the original implementation and source mapping.
+- India Stock Dashboard — practical live-market dashboard patterns and multi-source market data workflows.
+- StockView — real-time stock analysis dashboard architecture with a dedicated backend/data layer.
 
 These projects are references for product patterns and architecture, not code to copy.
 
-## Planned stack
+### Implemented in Phase 1
 
-- Next.js App Router
-- React
-- TypeScript
-- Tailwind CSS
-- Reusable UI components
-- Server-side API boundary for market-data providers
-- Automated CI
+- Normalized `Quote` and `Candle` contracts.
+- `MarketDataProvider` interface so vendors remain replaceable.
+- Yahoo Finance provider for stock quotes and historical OHLCV.
+- Server-side provider service with a provider loop ready for future fallbacks.
+- In-memory quote/history caching to reduce repeated upstream requests.
+- `/api/market/quote?symbol=AAPL` endpoint.
+- `/api/market/history?symbol=AAPL&range=1mo&interval=1d` endpoint.
+- Terminal-style quote monitor for AAPL, MSFT, NVDA, GOOGL, AMZN and TSLA.
+- Explicit provider and freshness metadata in the UI.
 
-## Development principles
+### Architecture
 
-1. Keep provider-specific code behind a normalized internal API.
-2. Build each phase so the application remains runnable.
-3. Prefer small, reviewable commits over large rewrites.
-4. Never expose provider credentials to the browser.
-5. Treat market data as potentially delayed, incomplete, or stale and expose freshness in the UI.
+```text
+Browser UI
+   ↓
+Trade Box API routes
+   ↓
+Normalized Market Data Service
+   ↓
+MarketDataProvider interface
+   ↓
+Yahoo Finance (current provider)
+
+Cache sits inside the server-side data layer.
+```
+
+### Important data note
+
+Yahoo Finance is used as the first provider for development. Market data may be delayed, rate-limited, stale, incomplete, or unavailable. Provider-specific details are intentionally isolated so additional sources can be added without changing the UI contract.
 
 ## Roadmap
 
-- Phase 0: Foundation
-- Phase 1: Market Data Engine
+- Phase 0: Foundation ✅
+- Phase 1: Market Data Engine ✅
 - Phase 2: Universal Search
 - Phase 3: Professional Charts
 - Phase 4: Technical Indicators
