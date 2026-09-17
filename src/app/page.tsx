@@ -9,6 +9,7 @@ import TechnicalIndicatorsPanel from "./technical-indicators-panel";
 import PriceStructurePanel from "./price-structure-panel";
 import DrawingToolsPanel from "./drawing-tools-panel";
 import WatchlistPanel from "./watchlist-panel";
+import IntelligencePanel from "./intelligence-panel";
 
 const modules = [
   ["MARKET", "Market data engine", "Quotes, OHLCV, market status, freshness"],
@@ -17,7 +18,8 @@ const modules = [
   ["TA", "Technical analysis", "Indicators, structure, explainable signals"],
   ["DRAW", "Drawing & price structure", "Levels, Fibonacci, trendlines, channels"],
   ["WATCH", "Watchlists", "Custom symbols, live quotes, ordering and persistence"],
-  ["RESEARCH", "Research terminal", "Fundamentals, news, macro and events"],
+  ["INTEL", "Trade intelligence", "Fundamentals, technicals, news, setup and backtest"],
+  ["RESEARCH", "Research terminal", "Company research, macro, events and sentiment"],
   ["PORTFOLIO", "Portfolio & risk", "P&L, allocation, exposure and risk"],
 ];
 
@@ -29,15 +31,16 @@ export default function Home() {
     <header className="mb-5 flex flex-wrap items-center gap-4 border-b border-[#1b2532] pb-4">
       <div className="flex items-center gap-3"><div className="flex h-9 w-9 items-center justify-center rounded bg-[#5eead4] text-sm font-black text-[#07100f]">TB</div><div><div className="text-sm font-bold tracking-[0.18em]">TRADE BOX</div><div className="text-[11px] text-[#7f8da1]">FINANCIAL RESEARCH TERMINAL</div></div></div>
       <MarketSearch onSelect={setSelectedSymbol} />
-      <div className="rounded border border-[#23413d] bg-[#0c1516] px-3 py-2 text-xs text-[#5eead4]">PHASE 7 · WATCHLISTS</div>
+      <div className="rounded border border-[#23413d] bg-[#0c1516] px-3 py-2 text-xs text-[#5eead4]">TRADE INTELLIGENCE</div>
     </header>
 
     <section className="grid gap-4 lg:grid-cols-[1.6fr_1fr]">
-      <div className="rounded border border-[#1b2532] bg-[#0c1118] p-5"><div className="text-xs font-bold tracking-[0.16em] text-[#5eead4]">WATCHLIST TERMINAL</div><h1 className="mt-2 text-2xl font-semibold">Keep your market set one click away.</h1><p className="mt-3 max-w-3xl text-sm leading-6 text-[#9aa8ba]">Phase 7 adds persistent symbol lists with live quote refresh, quick selection, add/remove controls and manual ordering. Watchlists are stored locally for now; shared accounts and cloud sync arrive with the production layer.</p><div className="mt-6 grid gap-2 sm:grid-cols-4">{[["CUSTOM", "Add any symbol"], ["LIVE", "30s quote refresh"], ["ORDER", "Move items up/down"], ["PERSIST", "Browser storage"]].map(([k,v]) => <div key={k} className="rounded border border-[#1b2532] bg-[#101722] p-3"><div className="text-[10px] tracking-widest text-[#7f8da1]">{k}</div><div className="mt-1 text-sm">{v}</div></div>)}</div></div>
-      <div className="rounded border border-[#1b2532] bg-[#0c1118] p-5"><div className="text-xs font-bold tracking-[0.16em] text-[#5eead4]">PHASE 7 CHECKLIST</div><div className="mt-4 space-y-3 text-sm">{["Custom watchlist symbols", "Live quote refresh", "Add / remove instruments", "Reorder instruments", "Quick chart selection", "Persistent local state", "Alerts and advanced analytics next"].map((item) => <div key={item} className="flex items-center gap-3"><span className="text-[#5eead4]">✓</span><span>{item}</span></div>)}</div></div>
+      <div className="rounded border border-[#1b2532] bg-[#0c1118] p-5"><div className="text-xs font-bold tracking-[0.16em] text-[#5eead4]">AUTOMATED MARKET RESEARCH</div><h1 className="mt-2 text-2xl font-semibold">Analyze the asset before you consider the trade.</h1><p className="mt-3 max-w-3xl text-sm leading-6 text-[#9aa8ba]">Trade Box combines technical evidence, available fundamentals, current news flow, a rule-based trade setup and a historical backtest. It deliberately shows the evidence and data gaps instead of hiding uncertainty behind a single score.</p><div className="mt-6 grid gap-2 sm:grid-cols-4">{[["TECH", "Trend + momentum"], ["FUND", "Valuation + financials"], ["NEWS", "Current headlines"], ["TEST", "Historical strategy test"]].map(([k,v]) => <div key={k} className="rounded border border-[#1b2532] bg-[#101722] p-3"><div className="text-[10px] tracking-widest text-[#7f8da1]">{k}</div><div className="mt-1 text-sm">{v}</div></div>)}</div></div>
+      <div className="rounded border border-[#1b2532] bg-[#0c1118] p-5"><div className="text-xs font-bold tracking-[0.16em] text-[#5eead4]">ANALYSIS PIPELINE</div><div className="mt-4 space-y-3 text-sm">{["Current market snapshot", "Technical structure + indicators", "Fundamental snapshot", "News and sentiment", "Trade entry / stop / targets", "Historical backtest", "Risk and invalidation"].map((item) => <div key={item} className="flex items-center gap-3"><span className="text-[#5eead4]">✓</span><span>{item}</span></div>)}</div></div>
     </section>
 
     <ProfessionalChart symbol={activeSymbol} />
+    <IntelligencePanel symbol={activeSymbol} />
     <TechnicalIndicatorsPanel symbol={activeSymbol} />
     <TechnicalAnalysisPanel symbol={activeSymbol} />
     <PriceStructurePanel symbol={activeSymbol} />
@@ -45,7 +48,7 @@ export default function Home() {
     <WatchlistPanel activeSymbol={activeSymbol} onSelect={setSelectedSymbol} />
     <MarketDataPanel requestedSymbol={selectedSymbol} />
 
-    <section className="mt-4 rounded border border-[#1b2532] bg-[#0c1118] p-5"><div className="mb-4 flex items-center justify-between"><div><div className="text-xs font-bold tracking-[0.16em] text-[#5eead4]">SYSTEM MAP</div><div className="mt-1 text-lg font-semibold">Upcoming Trade Box modules</div></div><div className="text-[11px] text-[#7f8da1]">BUILD ORDER: EASY → HARD</div></div><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{modules.map(([tag,title,description]) => <div key={tag} className="rounded border border-[#1b2532] bg-[#101722] p-4"><div className="text-[10px] font-bold tracking-[0.18em] text-[#7f8da1]">{tag}</div><div className="mt-2 font-medium">{title}</div><div className="mt-1 text-xs leading-5 text-[#7f8da1]">{description}</div></div>)}</div></section>
-    <footer className="mt-5 flex flex-wrap justify-between gap-3 border-t border-[#1b2532] pt-4 text-[11px] text-[#617086]"><span>Trade Box · Open-source financial research platform</span><span>Market data can be delayed, incomplete, or unavailable.</span></footer>
+    <section className="mt-4 rounded border border-[#1b2532] bg-[#0c1118] p-5"><div className="mb-4 flex items-center justify-between"><div><div className="text-xs font-bold tracking-[0.16em] text-[#5eead4]">SYSTEM MAP</div><div className="mt-1 text-lg font-semibold">Trade Box research platform</div></div><div className="text-[11px] text-[#7f8da1]">BUILD ORDER: DATA → EVIDENCE → TEST → DECISION SUPPORT</div></div><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{modules.map(([tag,title,description]) => <div key={tag} className="rounded border border-[#1b2532] bg-[#101722] p-4"><div className="text-[10px] font-bold tracking-[0.18em] text-[#7f8da1]">{tag}</div><div className="mt-2 font-medium">{title}</div><div className="mt-1 text-xs leading-5 text-[#7f8da1]">{description}</div></div>)}</div></section>
+    <footer className="mt-5 flex flex-wrap justify-between gap-3 border-t border-[#1b2532] pt-4 text-[11px] text-[#617086]"><span>Trade Box · Open-source financial research platform</span><span>Research output is not guaranteed; market data can be delayed, incomplete, or unavailable.</span></footer>
   </div></main>;
 }
