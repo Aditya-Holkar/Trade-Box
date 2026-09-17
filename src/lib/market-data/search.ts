@@ -66,35 +66,41 @@ export async function searchMarketSymbols(query: string): Promise<SearchResult[]
     return haystack.includes(normalized) || normalized.includes(item.symbol);
   });
 
-  const url = new URL(BASE_URL);
-  url.searchParams.set("q", trimmed);
-  url.searchParams.set("quotesCount", "12");
-  url.searchParams.set("newsCount", "0");
-  url.searchParams.set("enableFuzzyQuery", "true");
+  try {
+    const url = new URL(BASE_URL);
+    url.searchParams.set("q", trimmed);
+    url.searchParams.set("quotesCount", "12");
+    url.searchParams.set("newsCount", "0");
+    url.searchParams.set("enableFuzzyQuery", "true");
 
-  const response = await fetch(url, {
-    headers: { "User-Agent": "Trade-Box/0.1" },
-    next: { revalidate: 60 },
-  });
+    const response = await fetch(url, {
+      headers: { "User-Agent": "Trade-Box/0.1" },
+      next: { revalidate: 60 },
+    });
 
-  if (!response.ok) throw new Error(`Market search returned HTTP ${response.status}`);
+    if (!response.ok) {
+      if (localMatches.length) return localMatches;
+      throw new Error(`Market search returned HTTP ${response.status}`);
+    }
 
-  const data = (await response.json()) as YahooSearchResponse;
-  const yahooResults = (data.quotes ?? [])
-    .filter((quote) => quote.symbol)
-    .map((quote) => ({
-      symbol: quote.symbol!,
-      name: quote.longname ?? quote.shortname ?? quote.symbol!,
-      exchange: quote.exchange ?? null,
-      type: normalizeType(quote.quoteType, quote.typeDisp),
-      currency: quote.currency ?? null,
-      quoteType: quote.quoteType ?? null,
-    }));
+    const data = (await response.json()) as YahooSearchResponse;
+    const yahooResults = (data.quotes ?? [])
+      .filter((quote) => quote.symbol)
+      .map((quote) => ({
+        symbol: quote.symbol!,
+        name: quote.longname ?? quote.shortname ?? quote.symbol!,
+        exchange: quote.exchange ?? null,
+        type: normalizeType(quote.quoteType, quote.typeDisp),
+        currency: quote.currency ?? null,
+        quoteType: quote.quoteType ?? null,
+      }));
 
-  // Prefer Trade Box aliases so searching "XAUUSD", "XAU/USD", or "gold usd"
-  // gives the canonical pair that the market-data layer understands.
-  const combined = [...localMatches, ...yahooResults];
-  return combined.filter(
-    (item, index, all) => all.findIndex((candidate) => candidate.symbol === item.symbol) === index,
-  );
+    const combined = [...localMatches, ...yahooResults];
+    return combined.filter(
+      (item, index, all) => all.findIndex((candidate) => candidate.symbol === item.symbol) === index,
+    );
+  } catch (error) {
+    if (localMatches.length) return localMatches;
+    throw error;
+  }
 }
