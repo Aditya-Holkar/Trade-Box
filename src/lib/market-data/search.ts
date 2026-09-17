@@ -23,6 +23,28 @@ interface YahooSearchResponse {
 
 const BASE_URL = "https://query1.finance.yahoo.com/v1/finance/search";
 
+// Yahoo Finance does not expose OTC spot XAU/USD under the literal XAUUSD
+// search symbol. Keep Trade Box's user-facing symbol stable and map it to the
+// Yahoo instrument used by the quote/history provider.
+const ALIAS_RESULTS: SearchResult[] = [
+  {
+    symbol: "XAUUSD",
+    name: "Gold / US Dollar (XAU/USD)",
+    exchange: "OTC / Spot",
+    type: "commodity",
+    currency: "USD",
+    quoteType: "CURRENCY",
+  },
+  {
+    symbol: "XAGUSD",
+    name: "Silver / US Dollar (XAG/USD)",
+    exchange: "OTC / Spot",
+    type: "commodity",
+    currency: "USD",
+    quoteType: "CURRENCY",
+  },
+];
+
 function normalizeType(quoteType?: string, typeDisp?: string): SearchResult["type"] {
   const value = `${quoteType ?? ""} ${typeDisp ?? ""}`.toLowerCase();
   if (value.includes("etf")) return "etf";
@@ -38,6 +60,12 @@ export async function searchMarketSymbols(query: string): Promise<SearchResult[]
   const trimmed = query.trim();
   if (!trimmed) return [];
 
+  const normalized = trimmed.toUpperCase().replace(/[\s/\-_]/g, "");
+  const localMatches = ALIAS_RESULTS.filter((item) => {
+    const haystack = `${item.symbol} ${item.name}`.toUpperCase().replace(/[\s/\-_]/g, "");
+    return haystack.includes(normalized) || normalized.includes(item.symbol);
+  });
+
   const url = new URL(BASE_URL);
   url.searchParams.set("q", trimmed);
   url.searchParams.set("quotesCount", "12");
@@ -52,7 +80,7 @@ export async function searchMarketSymbols(query: string): Promise<SearchResult[]
   if (!response.ok) throw new Error(`Market search returned HTTP ${response.status}`);
 
   const data = (await response.json()) as YahooSearchResponse;
-  return (data.quotes ?? [])
+  const yahooResults = (data.quotes ?? [])
     .filter((quote) => quote.symbol)
     .map((quote) => ({
       symbol: quote.symbol!,
@@ -62,4 +90,11 @@ export async function searchMarketSymbols(query: string): Promise<SearchResult[]
       currency: quote.currency ?? null,
       quoteType: quote.quoteType ?? null,
     }));
+
+  // Prefer Trade Box aliases so searching "XAUUSD", "XAU/USD", or "gold usd"
+  // gives the canonical pair that the market-data layer understands.
+  const combined = [...localMatches, ...yahooResults];
+  return combined.filter(
+    (item, index, all) => all.findIndex((candidate) => candidate.symbol === item.symbol) === index,
+  );
 }
