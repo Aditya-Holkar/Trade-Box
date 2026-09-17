@@ -2,6 +2,33 @@ import type { Candle, MarketDataProvider, Quote } from "./types";
 
 const BASE_URL = "https://query1.finance.yahoo.com";
 
+const SYMBOL_ALIASES: Record<string, string> = {
+  XAUUSD: "GC=F",
+  GOLD: "GC=F",
+  XAGUSD: "SI=F",
+  SILVER: "SI=F",
+  WTI: "CL=F",
+  BRENT: "BZ=F",
+};
+
+function normalizeYahooSymbol(input: string): string {
+  const symbol = input.trim().toUpperCase();
+  if (SYMBOL_ALIASES[symbol]) return SYMBOL_ALIASES[symbol];
+  if (symbol.endsWith("=X")) return symbol;
+
+  // Yahoo represents standard FX pairs as e.g. EURUSD=X.
+  if (/^[A-Z]{6}$/.test(symbol)) return `${symbol}=X`;
+  return symbol;
+}
+
+function inferAssetType(symbol: string): Quote["assetType"] {
+  if (symbol === "GC=F" || symbol === "SI=F" || symbol === "CL=F" || symbol === "BZ=F") return "commodity";
+  if (symbol.endsWith("=X")) return "forex";
+  if (symbol.endsWith("=F")) return "commodity";
+  if (symbol.startsWith("^") || symbol === "%5EVIX") return "index";
+  return "stock";
+}
+
 interface YahooChartResponse {
   chart?: {
     result?: Array<{
@@ -54,19 +81,21 @@ export const yahooProvider: MarketDataProvider = {
   name: "Yahoo Finance",
 
   async getQuote(symbol: string): Promise<Quote> {
-    const result = await fetchChart(symbol.toUpperCase(), "1d", "1m");
+    const requestedSymbol = symbol.trim().toUpperCase();
+    const yahooSymbol = normalizeYahooSymbol(requestedSymbol);
+    const result = await fetchChart(yahooSymbol, "1d", "1m");
     const meta = result.meta ?? {};
     const price = meta.regularMarketPrice;
-    if (typeof price !== "number") throw new Error(`No quote available for ${symbol}`);
+    if (typeof price !== "number") throw new Error(`No quote available for ${requestedSymbol}`);
 
     const previousClose = meta.previousClose ?? meta.chartPreviousClose ?? null;
     const change = previousClose === null ? null : price - previousClose;
     const changePercent = previousClose ? (change! / previousClose) * 100 : null;
 
     return {
-      symbol: meta.symbol ?? symbol.toUpperCase(),
-      name: meta.shortName ?? meta.symbol ?? symbol.toUpperCase(),
-      assetType: "stock",
+      symbol: requestedSymbol,
+      name: meta.shortName ?? meta.symbol ?? requestedSymbol,
+      assetType: inferAssetType(yahooSymbol),
       currency: meta.currency ?? "USD",
       price,
       previousClose,
@@ -83,7 +112,7 @@ export const yahooProvider: MarketDataProvider = {
   },
 
   async getHistory(symbol: string, range = "1mo", interval = "1d"): Promise<Candle[]> {
-    const result = await fetchChart(symbol.toUpperCase(), range, interval);
+    const result = await fetchChart(normalizeYahooSymbol(symbol), range, interval);
     const timestamps = result.timestamp ?? [];
     const quote = result.indicators?.quote?.[0];
     if (!quote) return [];
