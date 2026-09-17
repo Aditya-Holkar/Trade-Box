@@ -34,10 +34,12 @@ function formatVolume(value: number) {
 }
 
 export default function ProfessionalChart({ symbol = "AAPL" }: { symbol?: string }) {
+  const normalizedSymbol = symbol.trim().toUpperCase() || "AAPL";
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | ISeriesApi<"Line"> | ISeriesApi<"Area"> | null>(null);
   const volumeRef = useRef<ISeriesApi<"Histogram"> | null>(null);
+  const requestIdRef = useRef(0);
   const [mode, setMode] = useState<ChartMode>("candles");
   const [timeframe, setTimeframe] = useState(timeframes[2]);
   const [candles, setCandles] = useState<Candle[]>([]);
@@ -47,23 +49,37 @@ export default function ProfessionalChart({ symbol = "AAPL" }: { symbol?: string
   const [cursor, setCursor] = useState<Candle | null>(null);
 
   const loadHistory = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     setError(null);
+    setCursor(null);
+    setCandles([]);
+
     try {
-      const response = await fetch(`/api/market/history?symbol=${encodeURIComponent(symbol)}&range=${timeframe.range}&interval=${timeframe.interval}`, { cache: "no-store" });
+      const response = await fetch(
+        `/api/market/history?symbol=${encodeURIComponent(normalizedSymbol)}&range=${timeframe.range}&interval=${timeframe.interval}`,
+        { cache: "no-store" },
+      );
       const body = await response.json();
-      if (!response.ok) throw new Error(body.error ?? "Chart data unavailable");
-      setCandles(body.data as Candle[]);
+      if (requestId !== requestIdRef.current) return;
+      if (!response.ok) throw new Error(body.error ?? `Chart data unavailable for ${normalizedSymbol}`);
+      setCandles((body.data as Candle[]) ?? []);
     } catch (err) {
+      if (requestId !== requestIdRef.current) return;
       setCandles([]);
       setError(err instanceof Error ? err.message : "Chart data unavailable");
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) setLoading(false);
     }
-  }, [symbol, timeframe]);
+  }, [normalizedSymbol, timeframe]);
 
-  useEffect(() => { void loadHistory(); }, [loadHistory]);
+  // Load whenever either the selected instrument OR timeframe changes.
+  useEffect(() => {
+    void loadHistory();
+  }, [loadHistory]);
 
+  // Create the chart exactly once for this mounted component. Data changes must
+  // update the existing series rather than destroying/recreating the chart.
   useEffect(() => {
     if (!containerRef.current) return;
     const container = containerRef.current;
@@ -82,9 +98,13 @@ export default function ProfessionalChart({ symbol = "AAPL" }: { symbol?: string
 
     const resize = new ResizeObserver(() => chart.applyOptions({ width: container.clientWidth }));
     resize.observe(container);
-    const handler = (param: { time?: Time; seriesData: Map<ISeriesApi<any>, unknown> }) => {
-      if (!param.time) { setCursor(null); return; }
-      const item = candles.find((c) => c.time === Number(param.time));
+
+    const handler = (param: { time?: Time }) => {
+      if (!param.time) {
+        setCursor(null);
+        return;
+      }
+      const item = candlesRef.current.find((c) => c.time === Number(param.time));
       setCursor(item ?? null);
     };
     chart.subscribeCrosshairMove(handler);
@@ -97,16 +117,38 @@ export default function ProfessionalChart({ symbol = "AAPL" }: { symbol?: string
       seriesRef.current = null;
       volumeRef.current = null;
     };
+  }, []);
+
+  const candlesRef = useRef<Candle[]>([]);
+  useEffect(() => {
+    candlesRef.current = candles;
   }, [candles]);
 
+  // Replace the data in the existing chart series when the selected symbol,
+  // timeframe, or chart mode changes. Lightweight Charts documents setData()
+  // as the API for replacing a series' complete dataset.
   useEffect(() => {
     const chart = chartRef.current;
-    if (!chart || !candles.length) return;
-    if (seriesRef.current) chart.removeSeries(seriesRef.current);
-    if (volumeRef.current) chart.removeSeries(volumeRef.current);
+    if (!chart) return;
+
+    if (seriesRef.current) {
+      chart.removeSeries(seriesRef.current);
+      seriesRef.current = null;
+    }
+    if (volumeRef.current) {
+      chart.removeSeries(volumeRef.current);
+      volumeRef.current = null;
+    }
+    if (!candles.length) return;
 
     if (mode === "candles") {
-      const series = chart.addSeries(CandlestickSeries, { upColor: "#5eead4", downColor: "#f08a9a", borderVisible: false, wickUpColor: "#5eead4", wickDownColor: "#f08a9a" });
+      const series = chart.addSeries(CandlestickSeries, {
+        upColor: "#5eead4",
+        downColor: "#f08a9a",
+        borderVisible: false,
+        wickUpColor: "#5eead4",
+        wickDownColor: "#f08a9a",
+      });
       series.setData(candles.map((c) => ({ time: c.time as Time, open: c.open, high: c.high, low: c.low, close: c.close })));
       seriesRef.current = series;
     } else if (mode === "line") {
@@ -114,17 +156,39 @@ export default function ProfessionalChart({ symbol = "AAPL" }: { symbol?: string
       series.setData(candles.map((c) => ({ time: c.time as Time, value: c.close })));
       seriesRef.current = series;
     } else {
-      const series = chart.addSeries(AreaSeries, { lineColor: "#5eead4", topColor: "rgba(94,234,212,0.22)", bottomColor: "rgba(94,234,212,0.02)", lineWidth: 2 });
+      const series = chart.addSeries(AreaSeries, {
+        lineColor: "#5eead4",
+        topColor: "rgba(94,234,212,0.22)",
+        bottomColor: "rgba(94,234,212,0.02)",
+        lineWidth: 2,
+      });
       series.setData(candles.map((c) => ({ time: c.time as Time, value: c.close })));
       seriesRef.current = series;
     }
 
-    const volume = chart.addSeries(HistogramSeries, { priceFormat: { type: "volume" }, priceScaleId: "volume", color: "#334155", base: 0 });
+    const volume = chart.addSeries(HistogramSeries, {
+      priceFormat: { type: "volume" },
+      priceScaleId: "volume",
+      color: "#334155",
+      base: 0,
+    });
     volume.priceScale().applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
-    volume.setData(candles.map((c) => ({ time: c.time as Time, value: c.volume, color: c.close >= c.open ? "#285b56" : "#5b3039" })));
+    volume.setData(candles.map((c) => ({
+      time: c.time as Time,
+      value: c.volume,
+      color: c.close >= c.open ? "#285b56" : "#5b3039",
+    })));
     volumeRef.current = volume;
+
     chart.timeScale().fitContent();
   }, [candles, mode]);
+
+  useEffect(() => {
+    setFullscreen(Boolean(document.fullscreenElement));
+    const onFullscreen = () => setFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", onFullscreen);
+    return () => document.removeEventListener("fullscreenchange", onFullscreen);
+  }, []);
 
   const latest = candles[candles.length - 1];
   const previous = candles[candles.length - 2];
@@ -132,14 +196,13 @@ export default function ProfessionalChart({ symbol = "AAPL" }: { symbol?: string
   const change = latest && previous ? latest.close - previous.close : null;
   const changePct = latest && previous && previous.close ? (change! / previous.close) * 100 : null;
 
-  const title = useMemo(() => symbol.toUpperCase(), [symbol]);
+  const title = useMemo(() => normalizedSymbol, [normalizedSymbol]);
 
   function toggleFullscreen() {
     const el = containerRef.current?.parentElement;
     if (!el) return;
     if (!document.fullscreenElement) void el.requestFullscreen?.();
     else void document.exitFullscreen?.();
-    setFullscreen(Boolean(!document.fullscreenElement));
   }
 
   return <section className="mt-4 overflow-hidden rounded border border-[#1b2532] bg-[#0c1118]">
@@ -159,9 +222,9 @@ export default function ProfessionalChart({ symbol = "AAPL" }: { symbol?: string
 
     <div className="relative min-h-[430px]">
       <div ref={containerRef} className="h-[430px] w-full" />
-      {loading && <div className="absolute inset-0 flex items-center justify-center bg-[#0c1118]/80 text-xs text-[#7f8da1]">Loading {timeframe.label} chart…</div>}
+      {loading && <div className="absolute inset-0 flex items-center justify-center bg-[#0c1118]/80 text-xs text-[#7f8da1]">Loading {title} · {timeframe.label} chart…</div>}
       {error && !loading && <div className="absolute inset-0 flex items-center justify-center bg-[#0c1118]/90"><div className="rounded border border-[#4a2930] bg-[#171016] px-4 py-3 text-sm text-[#f0a8b2]">{error}</div></div>}
     </div>
-    <div className="flex flex-wrap justify-between gap-2 border-t border-[#1b2532] px-4 py-2 text-[10px] text-[#617086]"><span>Scroll / pinch to zoom · drag to pan · crosshair for OHLC</span><span>{candles.length} bars · server-side market data</span></div>
+    <div className="flex flex-wrap justify-between gap-2 border-t border-[#1b2532] px-4 py-2 text-[10px] text-[#617086]"><span>Scroll / pinch to zoom · drag to pan · crosshair for OHLC</span><span>{candles.length} bars · {normalizedSymbol} · server-side market data</span></div>
   </section>;
 }
