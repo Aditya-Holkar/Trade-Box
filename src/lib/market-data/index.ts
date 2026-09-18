@@ -123,18 +123,18 @@ export async function getQuote(symbol: string): Promise<Quote> {
   const normalized = symbol.trim().toUpperCase();
   if (!normalized) throw new Error("Symbol is required");
 
-  // XAUUSD must never fall back to Yahoo/GC=F because that is gold futures,
-  // not the TradingView-style spot XAUUSD instrument.
+  // XAUUSD quote must stay on a spot feed. If TickerLayer is unavailable,
+  // use the keyless GoldPrice.dev spot endpoint rather than GC=F futures.
   if (normalized === "XAUUSD") {
     try {
       return await tickerLayerProvider.getQuote("XAUUSD");
     } catch (tickerError) {
       try {
-        return await tradingViewProvider.getQuote("XAUUSD");
-      } catch (tradingViewError) {
+        return await goldPriceProvider.getQuote("XAUUSD");
+      } catch (fallbackError) {
         throw new Error(
-          "No live XAUUSD spot feed is available. TickerLayer failed and TradingView fallback is not configured or unavailable.",
-          { cause: tradingViewError ?? tickerError },
+          "No live XAUUSD spot feed is available. TickerLayer and the keyless GoldPrice.dev fallback both failed.",
+          { cause: fallbackError ?? tickerError },
         );
       }
     }
