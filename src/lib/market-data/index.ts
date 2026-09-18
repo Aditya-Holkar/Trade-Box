@@ -1,5 +1,6 @@
 import { getCachedHistory, getCachedQuote, setCachedHistory, setCachedQuote } from "./cache";
 import { yahooProvider } from "./yahoo";
+import type { Candle, MarketDataProvider, Quote } from "./types";
 
 const tickerLayerProvider: MarketDataProvider = {
   name: "TickerLayer",
@@ -15,7 +16,6 @@ const tickerLayerProvider: MarketDataProvider = {
   },
   async getHistory(){ throw new Error("TickerLayer history is not enabled in this provider adapter"); }
 };
-import type { Candle, Quote } from "./types";
 
 export const providers = [yahooProvider];
 
@@ -45,7 +45,7 @@ export async function getQuote(symbol: string): Promise<Quote> {
 export async function getHistory(symbol: string, range = "1mo", interval = "1d"): Promise<Candle[]> {
   const normalized = symbol.trim().toUpperCase();
   if (!normalized) throw new Error("Symbol is required");
-  const key = `${normalized}:${range}:${interval}`;
+  const key = normalized + ":" + range + ":" + interval;
   const cached = getCachedHistory(key);
   if (cached) return cached;
 
