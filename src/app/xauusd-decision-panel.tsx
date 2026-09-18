@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import XauusdObservableChart from "./xauusd-observable-chart";
 
 type Horizon = {
   horizon: string; bias: "BUY" | "SELL" | "WAIT"; score: number; confidence: number;
@@ -63,6 +64,12 @@ export default function XauusdDecisionPanel(){
           <thead className="bg-[#101722] text-[10px] tracking-widest text-[#7f8da1]"><tr><th className="p-3">HORIZON</th><th>RECOMMENDATION</th><th>CONFIDENCE</th><th>ENTRY</th><th>STOP</th><th>TARGETS</th><th>TRIGGER</th></tr></thead>
           <tbody>{report.horizons.map(h=><tr key={h.horizon} className="border-t border-[#1b2532]"><td className="p-3 font-bold">{h.horizon}</td><td className={h.bias==="BUY"?"text-[#5eead4]":h.bias==="SELL"?"text-[#f08a9a]":"text-[#f5c16c]"}><b>{h.bias}</b><div className="text-[10px] text-[#617086]">Score {h.score>0?"+":""}{h.score}</div></td><td>{h.confidence.toFixed(0)}%</td><td>{h.entry}</td><td>{h.stop}</td><td>{h.targets}</td><td className="max-w-[320px] pr-3 text-[#9aa8ba]">{h.trigger}</td></tr>)}</tbody>
         </table>
+      </div>
+
+      <div className="rounded border border-[#1b2532] bg-[#101722] p-4">
+        <div className="text-[10px] tracking-widest text-[#7f8da1]">OBSERVABLE CONFLUENCE MAP</div>
+        <div className="mt-1 text-xs text-[#617086]">Reactive visual summary of the multi-horizon engine scores.</div>
+        <div className="mt-3"><XauusdObservableChart data={report.horizons.map(h => ({horizon:h.horizon, score:h.score}))}/></div>
       </div>
 
       <div className="grid gap-3 lg:grid-cols-4">
