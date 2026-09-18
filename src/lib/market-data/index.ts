@@ -6,29 +6,35 @@ const tickerLayerProvider: MarketDataProvider = {
   name: "TickerLayer",
   async getQuote(symbol: string): Promise<Quote> {
     const key = process.env.TICKERLAYER_API_KEY;
-    if (!key) throw new Error("TickerLayer API key is not configured");
-    const response = await fetch("https://api.tickerlayer.com/v1/quote?asset_class=commodities&symbol="+encodeURIComponent(symbol.toUpperCase()), { headers: { Authorization: "Bearer "+key }, cache: "no-store" });
+    if (!key) throw new Error("TickerLayer API key is not configured in Vercel");
+    const response = await fetch("https://api.tickerlayer.com/v1/quote?asset_class=commodities&symbol="+encodeURIComponent(symbol.toUpperCase()), {
+      headers: { Authorization: "Bearer " + key },
+      cache: "no-store",
+    });
     if (!response.ok) throw new Error("TickerLayer quote unavailable");
-    const body = await response.json() as { bid?:number; ask?:number; timestamp?:number; symbol?:string };
+    const body = (await response.json()) as { bid?: number; ask?: number; timestamp?: number };
     if (typeof body.bid !== "number" || typeof body.ask !== "number") throw new Error("TickerLayer returned no bid/ask");
-    const price=(body.bid+body.ask)/2;
-    return { symbol:symbol.toUpperCase(), name:"Gold / US Dollar", assetType:"commodity", currency:"USD", price, previousClose:null, change:null, changePercent:null, dayHigh:null, dayLow:null, volume:null, marketCap:null, timestamp:body.timestamp??Date.now(), provider:"TickerLayer", freshness:"live" };
+    const price = (body.bid + body.ask) / 2;
+    return {
+      symbol: symbol.toUpperCase(), name: "Gold / US Dollar", assetType: "commodity", currency: "USD",
+      price, previousClose: null, change: null, changePercent: null, dayHigh: null, dayLow: null,
+      volume: null, marketCap: null, timestamp: body.timestamp ?? Date.now(), provider: "TickerLayer", freshness: "live",
+    };
   },
-  async getHistory(){ throw new Error("TickerLayer history is not enabled in this provider adapter"); }
+  async getHistory() { throw new Error("TickerLayer history is not enabled in this provider adapter"); },
 };
 
 export const providers = [yahooProvider];
 
 export async function getQuote(symbol: string): Promise<Quote> {
-  if (symbol.trim().toUpperCase() === "XAUUSD") {
-    try { return await tickerLayerProvider.getQuote("XAUUSD"); } catch { /* fall through to Yahoo */ }
-  }
   const normalized = symbol.trim().toUpperCase();
   if (!normalized) throw new Error("Symbol is required");
 
+  // Never silently use GC=F futures for XAUUSD. Spot and futures can differ materially.
+  if (normalized === "XAUUSD") return tickerLayerProvider.getQuote("XAUUSD");
+
   const cached = getCachedQuote(normalized);
   if (cached) return cached;
-
   let lastError: unknown;
   for (const provider of providers) {
     try {
@@ -48,7 +54,6 @@ export async function getHistory(symbol: string, range = "1mo", interval = "1d")
   const key = normalized + ":" + range + ":" + interval;
   const cached = getCachedHistory(key);
   if (cached) return cached;
-
   let lastError: unknown;
   for (const provider of providers) {
     try {
