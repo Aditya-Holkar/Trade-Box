@@ -75,17 +75,32 @@ async function sourceSnapshot(url:string,kind:"ff"|"capitol"){
     return {available:true,headline:hits.length?hits.join(" · "):text.slice(0,220),sentiment:sentiment(text.slice(0,3000)),url};
   }catch{return {available:false,headline:"Source unavailable",sentiment:"neutral",url};}
 }
+
+async function yahooChange(symbol:string){
+  try{
+    const url="https://query1.finance.yahoo.com/v8/finance/chart/"+encodeURIComponent(symbol)+"?range=5d&interval=1d";
+    const r=await fetch(url,{headers:{"User-Agent":"Trade-Box/1.0"},next:{revalidate:300}});
+    if(!r.ok)return null;
+    const b=await r.json() as {chart?:{result?:Array<{indicators?:{quote?:Array<{close?:Array<number|null>}>}}>}};
+    const closes=b.chart?.result?.[0]?.indicators?.quote?.[0]?.close?.filter((x):x is number=>typeof x==="number")??[];
+    if(closes.length<2)return null;
+    return {value:closes[closes.length-1],changePct:(closes[closes.length-1]/closes[0]-1)*100};
+  }catch{return null}
+}
+
 export async function GET(){
   try{
-    const [quote,m15,daily,news,ff,capitol]=await Promise.all([
+    const [quote,m15,daily,news,ff,capitol,dxy,us10y,oil]=await Promise.all([
       getQuote("XAUUSD"),getHistory("XAUUSD","5d","15m"),getHistory("XAUUSD","1y","1d"),rssNews(),
       sourceSnapshot("https://www.forexfactory.com/?page=calendar","ff"),
-      sourceSnapshot("https://www.capitoltrades.com/","capitol")
+      sourceSnapshot("https://www.capitoltrades.com/","capitol"),
+      yahooChange("DX-Y.NYB"),yahooChange("^TNX"),yahooChange("CL=F")
     ]);
     const f5=frame(m15,"M15"),f30=frame(resample(m15,2),"30M"),f1=frame(resample(m15,4),"1H"),fw=frame(resample(daily,5),"1W"),fm=frame(resample(daily,20),"1M");
     const ns=news.filter((x:any)=>x.sentiment==="positive").length-news.filter((x:any)=>x.sentiment==="negative").length;
-    const macro=(ff.sentiment==="positive"?1:ff.sentiment==="negative"?-1:0)+(capitol.sentiment==="positive"?0.5:capitol.sentiment==="negative"?-0.5:0);
+    const macro=(ff.sentiment==="positive"?1:ff.sentiment==="negative"?-1:0)+(dxy&&dxy.changePct>0.5?-1:dxy&&dxy.changePct<-0.5?1:0)+(us10y&&us10y.changePct>0.75?-1:us10y&&us10y.changePct<-0.75?1:0)+(capitol.sentiment==="positive"?0.25:capitol.sentiment==="negative"?-0.25:0);
+    const fundamentals={dollarIndex:dxy,us10y,oil,centralBankContext:ff.headline,policyFlowContext:capitol.headline};
     const horizons=[makeHorizon("5 MIN",f5,macro,ns),makeHorizon("30 MIN",f30,macro,ns),makeHorizon("1 HOUR",f1,macro,ns),makeHorizon("1 WEEK",fw,macro,ns),makeHorizon("1 MONTH",fm,macro,ns)];
-    return NextResponse.json({quote,horizons,technicals:{m15:f5,m30:f30,h1:f1,w1:fw,m1:fm},news,marketSentiment:{score:ns,label:ns>=2?"BULLISH":ns<=-2?"BEARISH":"MIXED"},macro:{score:macro,label:macro>1?"SUPPORTIVE":macro<-1?"HEADWIND":"MIXED"},sources:{forexFactory:ff,capitolTrades:capitol},generatedAt:Date.now(),warnings:["Confidence is a confluence estimate, not a probability of profit.","CapitolTrades is indirect political/policy-flow context, not a direct XAUUSD positioning feed.","For execution-grade accuracy, use a dedicated real-time XAUUSD spot feed and a structured economic-calendar API."]});
+    return NextResponse.json({quote,horizons,technicals:{m15:f5,m30:f30,h1:f1,w1:fw,m1:fm},news,marketSentiment:{score:ns,label:ns>=2?"BULLISH":ns<=-2?"BEARISH":"MIXED"},macro:{score:macro,label:macro>1?"SUPPORTIVE":macro<-1?"HEADWIND":"MIXED"},fundamentals,sources:{forexFactory:ff,capitolTrades:capitol},generatedAt:Date.now(),warnings:["Confidence is a confluence estimate, not a probability of profit.","CapitolTrades is indirect political/policy-flow context, not a direct XAUUSD positioning feed.","For execution-grade accuracy, use a dedicated real-time XAUUSD spot feed and a structured economic-calendar API."]});
   }catch(e){return NextResponse.json({error:e instanceof Error?e.message:"XAUUSD intelligence unavailable"},{status:502})}
 }
