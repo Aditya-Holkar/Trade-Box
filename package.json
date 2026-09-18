@@ -6,13 +6,17 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "auth:migrate": "npx auth@latest migrate"
   },
   "dependencies": {
     "lightweight-charts": "^5.0.0",
     "next": "^15.5.0",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "@observablehq/plot": "^0.6.17",
+    "better-auth": "^1.4.7",
+    "pg": "^8.16.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.0",
@@ -22,6 +26,7 @@
     "eslint": "^9.0.0",
     "eslint-config-next": "^15.5.0",
     "tailwindcss": "^4.1.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "@types/pg": "^8.15.5"
   }
 }
