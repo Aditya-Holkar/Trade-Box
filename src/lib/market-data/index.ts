@@ -48,56 +48,56 @@ const tickerLayerProvider: MarketDataProvider = {
   },
 };
 
-const goldPriceProvider: MarketDataProvider = {
-  name: "GoldPrice.dev",
+const xausProvider: MarketDataProvider = {
+  name: "XAUS",
   async getQuote(symbol: string): Promise<Quote> {
     if (symbol.trim().toUpperCase() !== "XAUUSD") {
-      throw new Error("GoldPrice.dev fallback only supports XAUUSD");
+      throw new Error("XAUS fallback only supports XAUUSD");
     }
 
     const response = await fetch(
-      "https://api.goldprice.dev/v1/spot/XAU-USD-SPOT",
+      "https://xaus.com/api/v1/spot?compact=1&fresh=" + Date.now(),
       {
         cache: "no-store",
         signal: AbortSignal.timeout(10_000),
       },
     );
 
-    if (!response.ok) {
-      throw new Error(`GoldPrice.dev returned HTTP ${response.status}`);
-    }
+    if (!response.ok) throw new Error(`XAUS returned HTTP ${response.status}`);
 
     const body = (await response.json()) as {
-      symbol?: string;
-      quote_currency?: string;
-      price?: string | number;
-      bid?: string | number;
-      ask?: string | number;
-      is_stale?: boolean;
-      computed_at?: string;
+      spot_usd_oz?: number;
+      updated_at?: string;
+      price_as_of?: string;
+      data_state?: {
+        status?: "fresh" | "stale" | "unavailable";
+        age_seconds?: number;
+      };
     };
 
-    const price = Number(body.price);
-    if (!Number.isFinite(price) || price <= 0) {
-      throw new Error("GoldPrice.dev returned no valid XAU/USD price");
+    if (
+      typeof body.spot_usd_oz !== "number" ||
+      !Number.isFinite(body.spot_usd_oz) ||
+      body.spot_usd_oz <= 0 ||
+      body.data_state?.status === "unavailable"
+    ) {
+      throw new Error("XAUS returned no usable XAU/USD spot price");
     }
 
-    const computedAt = body.computed_at ? Date.parse(body.computed_at) : Date.now();
-    const timestamp = Number.isFinite(computedAt) ? computedAt : Date.now();
+    const observedAt = body.price_as_of ?? body.updated_at;
+    const timestamp = observedAt ? Date.parse(observedAt) : Date.now();
+    const age = body.data_state?.age_seconds ?? 0;
 
-    if (body.is_stale === true) {
-      throw new Error("GoldPrice.dev returned a stale XAU/USD price");
+    if (!Number.isFinite(timestamp) || age > 120 || body.data_state?.status === "stale") {
+      throw new Error("XAUS XAU/USD spot price is stale");
     }
-
-    const bid = body.bid == null ? null : Number(body.bid);
-    const ask = body.ask == null ? null : Number(body.ask);
 
     return {
       symbol: "XAUUSD",
       name: "Gold / US Dollar",
       assetType: "commodity",
-      currency: body.quote_currency ?? "USD",
-      price,
+      currency: "USD",
+      price: body.spot_usd_oz,
       previousClose: null,
       change: null,
       changePercent: null,
@@ -106,16 +106,95 @@ const goldPriceProvider: MarketDataProvider = {
       volume: null,
       marketCap: null,
       timestamp,
-      provider: "GoldPrice.dev",
+      provider: "XAUS",
       freshness: "live",
-      ...(bid !== null || ask !== null ? { bid, ask } : {}),
-    } as Quote & { bid?: number | null; ask?: number | null };
+    };
   },
-  async getHistory() {
-    throw new Error("GoldPrice.dev anonymous fallback does not provide the intraday history required by this adapter");
+
+  async getHistory(symbol: string, range = "1mo", interval = "1d"): Promise<Candle[]> {
+    if (symbol.trim().toUpperCase() !== "XAUUSD") {
+      throw new Error("XAUS history only supports XAUUSD");
+    }
+
+    if (interval === "1d" || interval === "1w" || interval === "1mo") {
+      const response = await fetch(
+        "https://xaus.com/api/v1/history?fresh=" + Date.now(),
+        { cache: "no-store", signal: AbortSignal.timeout(10_000) },
+      );
+      if (!response.ok) throw new Error(`XAUS history returned HTTP ${response.status}`);
+
+      const body = (await response.json()) as {
+        points?: Array<{ d?: string; o?: number; c?: number; h?: number; l?: number }>;
+      };
+      const points = body.points ?? [];
+      const candles = points
+        .filter(
+          (p) =>
+            typeof p.d === "string" &&
+            typeof p.c === "number" &&
+            typeof p.h === "number" &&
+            typeof p.l === "number",
+        )
+        .map((p) => ({
+          time: Math.floor(Date.parse(p.d as string) / 1000),
+          open: typeof p.o === "number" ? p.o : (p.c as number),
+          high: p.h as number,
+          low: p.l as number,
+          close: p.c as number,
+          volume: 0,
+        }))
+        .filter((p) => Number.isFinite(p.time))
+        .sort((a, b) => a.time - b.time);
+
+      if (!candles.length) throw new Error("XAUS returned no daily XAU/USD history");
+      return candles;
+    }
+
+    const response = await fetch(
+      "https://xaus.com/api/v1/intraday?symbol=xau&hours=48&fresh=" + Date.now(),
+      { cache: "no-store", signal: AbortSignal.timeout(10_000) },
+    );
+    if (!response.ok) throw new Error(`XAUS intraday returned HTTP ${response.status}`);
+
+    const body = (await response.json()) as {
+      points?: Array<{ t?: string | number; p?: number }>;
+      data_state?: { status?: string; age_seconds?: number };
+    };
+    const points = body.points ?? [];
+    const raw = points
+      .map((p) => ({
+        time:
+          typeof p.t === "number"
+            ? (p.t > 2_000_000_000 ? Math.floor(p.t / 1000) : Math.floor(p.t))
+            : Math.floor(Date.parse(p.t ?? "") / 1000),
+        price: Number(p.p),
+      }))
+      .filter((p) => Number.isFinite(p.time) && Number.isFinite(p.price) && p.price > 0)
+      .sort((a, b) => a.time - b.time);
+
+    if (raw.length < 2) throw new Error("XAUS returned insufficient intraday XAU/USD history");
+
+    const minutes = interval === "5m" ? 5 : interval === "15m" ? 15 : interval === "30m" ? 30 : interval === "1h" ? 60 : 2;
+    const bucket = new Map<number, number[]>();
+    for (const point of raw) {
+      const start = Math.floor(point.time / (minutes * 60)) * minutes * 60;
+      const values = bucket.get(start) ?? [];
+      values.push(point.price);
+      bucket.set(start, values);
+    }
+
+    return [...bucket.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([time, values]) => ({
+        time,
+        open: values[0],
+        high: Math.max(...values),
+        low: Math.min(...values),
+        close: values[values.length - 1],
+        volume: 0,
+      }));
   },
 };
-
 
 export const providers = [yahooProvider];
 
@@ -123,17 +202,16 @@ export async function getQuote(symbol: string): Promise<Quote> {
   const normalized = symbol.trim().toUpperCase();
   if (!normalized) throw new Error("Symbol is required");
 
-  // XAUUSD quote must stay on a spot feed. If TickerLayer is unavailable,
-  // use the keyless GoldPrice.dev spot endpoint rather than GC=F futures.
+  // XAUUSD stays entirely on keyless spot data: TickerLayer first, XAUS fallback.
   if (normalized === "XAUUSD") {
     try {
       return await tickerLayerProvider.getQuote("XAUUSD");
     } catch (tickerError) {
       try {
-        return await goldPriceProvider.getQuote("XAUUSD");
+        return await xausProvider.getQuote("XAUUSD");
       } catch (fallbackError) {
         throw new Error(
-          "No live XAUUSD spot feed is available. TickerLayer and the keyless GoldPrice.dev fallback both failed.",
+          "No live XAUUSD spot feed is available. TickerLayer and keyless XAUS both failed.",
           { cause: fallbackError ?? tickerError },
         );
       }
@@ -166,11 +244,10 @@ export async function getHistory(
   const cached = getCachedHistory(key);
   if (cached) return cached;
 
-  // Live XAUUSD is spot, but anonymous spot history is not available at the
-  // intraday depth this app needs. Use Yahoo GC=F only as a historical
-  // technical proxy; never use it for the displayed live XAUUSD price.
+  // XAUUSD history also stays off Yahoo: XAUS provides keyless
+  // recorded 2-minute intraday points and daily history.
   if (normalized === "XAUUSD") {
-    const candles = await yahooProvider.getHistory(normalized, range, interval);
+    const candles = await xausProvider.getHistory(normalized, range, interval);
     setCachedHistory(key, candles);
     return candles;
   }
