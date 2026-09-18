@@ -13,6 +13,7 @@ type Report = {
   news: {title:string;link:string;publishedAt:string;sentiment:string}[];
   marketSentiment: {score:number;label:string};
   macro: {score:number;label:string};
+  fundamentals: {dollarIndex:{value:number;changePct:number}|null;us10y:{value:number;changePct:number}|null;oil:{value:number;changePct:number}|null;centralBankContext:string;policyFlowContext:string};
   sources: {forexFactory:{available:boolean;headline:string;sentiment:string;url:string};capitolTrades:{available:boolean;headline:string;sentiment:string;url:string}};
   generatedAt: number;
   warnings: string[];
@@ -64,7 +65,16 @@ export default function XauusdDecisionPanel(){
         </table>
       </div>
 
-      <div className="grid gap-3 lg:grid-cols-3">
+      <div className="grid gap-3 lg:grid-cols-4">
+        <div className="rounded border border-[#1b2532] bg-[#101722] p-4">
+          <div className="text-[10px] tracking-widest text-[#7f8da1]">FUNDAMENTALS / MACRO</div>
+          <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+            <div>DXY<br/><b>{report.fundamentals.dollarIndex?report.fundamentals.dollarIndex.value.toFixed(2):"—"}</b><div className="text-[#617086]">{report.fundamentals.dollarIndex?report.fundamentals.dollarIndex.changePct.toFixed(2)+"% 5D":"—"}</div></div>
+            <div>US10Y<br/><b>{report.fundamentals.us10y?report.fundamentals.us10y.value.toFixed(2):"—"}</b><div className="text-[#617086]">{report.fundamentals.us10y?report.fundamentals.us10y.changePct.toFixed(2)+"% 5D":"—"}</div></div>
+            <div>OIL<br/><b>{report.fundamentals.oil?report.fundamentals.oil.value.toFixed(2):"—"}</b><div className="text-[#617086]">{report.fundamentals.oil?report.fundamentals.oil.changePct.toFixed(2)+"% 5D":"—"}</div></div>
+          </div>
+          <div className="mt-3 text-[10px] leading-4 text-[#617086]">Gold has no corporate-style fundamentals; this panel uses macro fundamentals: USD, rates, energy, central-bank context and policy flow.</div>
+        </div>
         <div className="rounded border border-[#1b2532] bg-[#101722] p-4">
           <div className="text-[10px] tracking-widest text-[#7f8da1]">TECHNICAL CONFLUENCE</div>
           <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
