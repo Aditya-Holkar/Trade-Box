@@ -1,183 +1,94 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
-type Candle = { time: number; open: number; high: number; low: number; close: number; volume: number };
-type Decision = {
-  state: "LONG SETUP" | "SHORT SETUP" | "WAIT";
-  score: number;
-  price: number;
-  support: number;
-  resistance: number;
-  ema20: number;
-  ema50: number;
-  rsi: number;
-  atr: number;
-  reasons: string[];
-  invalidation: string;
+type Horizon = {
+  horizon: string; bias: "BUY" | "SELL" | "WAIT"; score: number; confidence: number;
+  trigger: string; entry: string; stop: string; targets: string; rationale: string[];
+};
+type Report = {
+  quote: { price: number; bid?: number; ask?: number };
+  horizons: Horizon[];
+  technicals: Record<string, {score:number;price:number;atr:number;rsi:number;ema20:number;ema50:number;support:number;resistance:number;details:string[]}>;
+  news: {title:string;link:string;publishedAt:string;sentiment:string}[];
+  marketSentiment: {score:number;label:string};
+  macro: {score:number;label:string};
+  sources: {forexFactory:{available:boolean;headline:string;sentiment:string;url:string};capitolTrades:{available:boolean;headline:string;sentiment:string;url:string}};
+  generatedAt: number;
+  warnings: string[];
 };
 
-function ema(values: number[], period: number) {
-  if (!values.length) return 0;
-  const k = 2 / (period + 1);
-  let value = values[0];
-  for (let i = 1; i < values.length; i++) value = values[i] * k + value * (1 - k);
-  return value;
-}
+const fmt=(n:number|undefined)=>typeof n==="number"&&Number.isFinite(n)?n.toFixed(2):"—";
 
-function rsi(values: number[], period = 14) {
-  if (values.length <= period) return 50;
-  let gains = 0, losses = 0;
-  for (let i = 1; i <= period; i++) {
-    const d = values[i] - values[i - 1];
-    if (d >= 0) gains += d; else losses -= d;
+export default function XauusdDecisionPanel(){
+  const [report,setReport]=useState<Report|null>(null);
+  const [loading,setLoading]=useState(true);
+  const [error,setError]=useState<string|null>(null);
+
+  async function load(){
+    setLoading(true);setError(null);
+    try{const r=await fetch("/api/xauusd/decision",{cache:"no-store"});const b=await r.json();if(!r.ok)throw new Error(b.error??"XAUUSD intelligence unavailable");setReport(b);}
+    catch(e){setError(e instanceof Error?e.message:"XAUUSD intelligence unavailable");}
+    finally{setLoading(false);}
   }
-  let avgGain = gains / period, avgLoss = losses / period;
-  for (let i = period + 1; i < values.length; i++) {
-    const d = values[i] - values[i - 1];
-    avgGain = (avgGain * (period - 1) + Math.max(d, 0)) / period;
-    avgLoss = (avgLoss * (period - 1) + Math.max(-d, 0)) / period;
-  }
-  if (avgLoss === 0) return 100;
-  return 100 - 100 / (1 + avgGain / avgLoss);
-}
+  useEffect(()=>{void load();},[]);
 
-function atr(candles: Candle[], period = 14) {
-  if (candles.length < period + 1) return 0;
-  const tr = candles.slice(1).map((c, i) => {
-    const prev = candles[i].close;
-    return Math.max(c.high - c.low, Math.abs(c.high - prev), Math.abs(c.low - prev));
-  });
-  return tr.slice(-period).reduce((a, b) => a + b, 0) / period;
-}
-
-function buildDecision(candles: Candle[]): Decision | null {
-  if (candles.length < 60) return null;
-  const closes = candles.map(c => c.close);
-  const price = closes.at(-1)!;
-  const e20 = ema(closes.slice(-120), 20);
-  const e50 = ema(closes.slice(-160), 50);
-  const r = rsi(closes.slice(-100), 14);
-  const a = atr(candles.slice(-80), 14);
-  const recent = candles.slice(-24, -1);
-  const support = Math.min(...recent.map(c => c.low));
-  const resistance = Math.max(...recent.map(c => c.high));
-  let score = 0;
-  const reasons: string[] = [];
-
-  if (e20 > e50) { score += 2; reasons.push("EMA20 is above EMA50: short-term trend is positive."); }
-  else { score -= 2; reasons.push("EMA20 is below EMA50: short-term trend is negative."); }
-
-  if (price > e20) { score += 1; reasons.push("Price is above EMA20."); }
-  else { score -= 1; reasons.push("Price is below EMA20."); }
-
-  if (r >= 52 && r <= 68) { score += 1; reasons.push("RSI supports bullish momentum without being deeply overbought."); }
-  else if (r <= 48 && r >= 32) { score -= 1; reasons.push("RSI supports bearish momentum without being deeply oversold."); }
-  else reasons.push("RSI is extreme or neutral; wait for price confirmation.");
-
-  const breakout = price > resistance;
-  const breakdown = price < support;
-  if (breakout) { score += 2; reasons.push("Price has broken the recent resistance window."); }
-  if (breakdown) { score -= 2; reasons.push("Price has broken the recent support window."); }
-
-  const state = score >= 4 ? "LONG SETUP" : score <= -4 ? "SHORT SETUP" : "WAIT";
-  const invalidation = state === "LONG SETUP"
-    ? `Long thesis invalid below ~${(price - a).toFixed(2)} or the recent support zone.`
-    : state === "SHORT SETUP"
-      ? `Short thesis invalid above ~${(price + a).toFixed(2)} or the recent resistance zone.`
-      : "No entry until price confirms a directional break and momentum agrees.";
-
-  return { state, score, price, support, resistance, ema20: e20, ema50: e50, rsi: r, atr: a, reasons, invalidation };
-}
-
-export default function XauusdDecisionPanel() {
-  const [decision, setDecision] = useState<Decision | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [updated, setUpdated] = useState<Date | null>(null);
-
-  async function load() {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch("/api/market/history?symbol=XAUUSD&range=5d&interval=15m", { cache: "no-store" });
-      const body = await response.json();
-      if (!response.ok) throw new Error(body.error ?? "XAUUSD history unavailable");
-      const candles = (body.data?.candles ?? body.data ?? []) as Candle[];
-      const result = buildDecision(candles);
-      if (!result) throw new Error("Not enough XAUUSD candles to calculate the setup.");
-      setDecision(result);
-      setUpdated(new Date());
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "XAUUSD analysis unavailable");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => { void load(); }, []);
-
-  const tone = useMemo(() => {
-    if (!decision) return "border-[#263444] bg-[#101722] text-white";
-    if (decision.state === "LONG SETUP") return "border-[#23413d] bg-[#0c1516] text-[#5eead4]";
-    if (decision.state === "SHORT SETUP") return "border-[#5b2932] bg-[#1a1014] text-[#f08a9a]";
-    return "border-[#263444] bg-[#101722] text-[#f5c16c]";
-  }, [decision]);
-
-  return <section className="mt-4 rounded border border-[#1b2532] bg-[#0c1118]">
-    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#1b2532] px-4 py-3">
+  return <section className="mt-4 overflow-hidden rounded border border-[#1b2532] bg-[#0b1017]">
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#1b2532] px-4 py-4">
       <div>
-        <div className="text-xs font-bold tracking-[0.16em] text-[#5eead4]">XAUUSD · TRADE DECISION ENGINE</div>
-        <div className="mt-1 text-lg font-semibold">Confirmation-based entry workflow</div>
+        <div className="text-xs font-bold tracking-[.18em] text-[#5eead4]">XAUUSD · MULTI-HORIZON TRADE INTELLIGENCE</div>
+        <div className="mt-1 text-lg font-semibold">News + sentiment + technicals + macro + policy context</div>
       </div>
-      <button onClick={() => void load()} disabled={loading} className="rounded border border-[#263444] px-3 py-1.5 text-[10px] font-bold text-[#9aa8ba] hover:border-[#5eead4] hover:text-[#5eead4]">{loading ? "CALCULATING…" : "REFRESH"}</button>
+      <button onClick={()=>void load()} disabled={loading} className="rounded border border-[#263444] px-3 py-2 text-[10px] font-bold tracking-wider text-[#9aa8ba] hover:border-[#5eead4] hover:text-[#5eead4]">{loading?"ANALYZING…":"REFRESH"}</button>
     </div>
 
-    {error && <div className="m-4 rounded border border-[#5b2932] bg-[#1a1014] p-3 text-xs text-[#f08a9a]">{error}</div>}
-    {loading && !decision && <div className="p-8 text-center text-sm text-[#718096]">Calculating XAUUSD structure, momentum and volatility…</div>}
+    {error&&<div className="m-4 rounded border border-[#5b2932] bg-[#1a1014] p-3 text-xs text-[#f08a9a]">{error}</div>}
+    {loading&&!report&&<div className="p-10 text-center text-sm text-[#718096]">Building the XAUUSD evidence stack…</div>}
 
-    {decision && <div className="space-y-4 p-4">
-      <div className="grid gap-3 lg:grid-cols-[1.15fr_1fr_1fr]">
-        <div className={`rounded border p-4 ${tone}`}>
-          <div className="text-[10px] tracking-widest opacity-70">CURRENT STATE · M15</div>
-          <div className="mt-2 text-3xl font-black">{decision.state}</div>
-          <div className="mt-2 text-xs opacity-80">Signal score: {decision.score > 0 ? "+" : ""}{decision.score} / 7</div>
-          <div className="mt-3 text-xs leading-5 opacity-90">{decision.state === "WAIT" ? "Do not force an entry. Wait for structure + momentum confirmation." : "This is a setup condition, not a guaranteed outcome. Confirm spread, news risk and execution conditions before acting."}</div>
+    {report&&<div className="space-y-4 p-4">
+      <div className="grid gap-3 lg:grid-cols-[1.2fr_1fr_1fr_1fr]">
+        <div className="rounded border border-[#23413d] bg-[#0c1516] p-4">
+          <div className="text-[10px] tracking-widest text-[#7f8da1]">LIVE MARKET</div>
+          <div className="mt-2 font-mono text-3xl font-black">{fmt(report.quote.price)}</div>
+          <div className="mt-2 text-xs text-[#7f8da1]">Bid {fmt(report.quote.bid)} · Ask {fmt(report.quote.ask)}</div>
         </div>
+        <div className="rounded border border-[#1b2532] bg-[#101722] p-4"><div className="text-[10px] tracking-widest text-[#7f8da1]">MARKET SENTIMENT</div><div className="mt-2 text-xl font-black">{report.marketSentiment.label}</div><div className="mt-1 text-xs text-[#7f8da1]">News-flow composite: {report.marketSentiment.score > 0 ? "+" : ""}{report.marketSentiment.score}</div></div>
+        <div className="rounded border border-[#1b2532] bg-[#101722] p-4"><div className="text-[10px] tracking-widest text-[#7f8da1]">MACRO / POLICY</div><div className="mt-2 text-xl font-black">{report.macro.label}</div><div className="mt-1 text-xs text-[#7f8da1]">Forex Factory + policy context</div></div>
+        <div className="rounded border border-[#1b2532] bg-[#101722] p-4"><div className="text-[10px] tracking-widest text-[#7f8da1]">ENGINE MODE</div><div className="mt-2 text-xl font-black text-[#f5c16c]">CONFIRMATION</div><div className="mt-1 text-xs text-[#7f8da1]">No guaranteed outcomes</div></div>
+      </div>
 
+      <div className="overflow-x-auto rounded border border-[#1b2532]">
+        <table className="w-full min-w-[1050px] text-left text-xs">
+          <thead className="bg-[#101722] text-[10px] tracking-widest text-[#7f8da1]"><tr><th className="p-3">HORIZON</th><th>RECOMMENDATION</th><th>CONFIDENCE</th><th>ENTRY</th><th>STOP</th><th>TARGETS</th><th>TRIGGER</th></tr></thead>
+          <tbody>{report.horizons.map(h=><tr key={h.horizon} className="border-t border-[#1b2532]"><td className="p-3 font-bold">{h.horizon}</td><td className={h.bias==="BUY"?"text-[#5eead4]":h.bias==="SELL"?"text-[#f08a9a]":"text-[#f5c16c]"}><b>{h.bias}</b><div className="text-[10px] text-[#617086]">Score {h.score>0?"+":""}{h.score}</div></td><td>{h.confidence.toFixed(0)}%</td><td>{h.entry}</td><td>{h.stop}</td><td>{h.targets}</td><td className="max-w-[320px] pr-3 text-[#9aa8ba]">{h.trigger}</td></tr>)}</tbody>
+        </table>
+      </div>
+
+      <div className="grid gap-3 lg:grid-cols-3">
         <div className="rounded border border-[#1b2532] bg-[#101722] p-4">
-          <div className="text-[10px] tracking-widest text-[#7f8da1]">PRICE STRUCTURE</div>
+          <div className="text-[10px] tracking-widest text-[#7f8da1]">TECHNICAL CONFLUENCE</div>
           <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
-            <div>Price<br/><b>{decision.price.toFixed(2)}</b></div>
-            <div>ATR 14<br/><b>{decision.atr.toFixed(2)}</b></div>
-            <div>Support<br/><b>{decision.support.toFixed(2)}</b></div>
-            <div>Resistance<br/><b>{decision.resistance.toFixed(2)}</b></div>
+            {([["M15","m15"],["30M","m30"],["1H","h1"],["1W","w1"],["1M","m1"]] as const).map(([label,key])=>{const x=report.technicals[key];return <div key={key} className="rounded border border-[#1b2532] p-3"><div className="font-bold">{label}</div><div className="mt-1 text-[#9aa8ba]">EMA {x.score>0?"bullish":"bearish"} · RSI {fmt(x.rsi)}</div><div className="text-[#617086]">S {fmt(x.support)} · R {fmt(x.resistance)}</div></div>})}
           </div>
         </div>
-
         <div className="rounded border border-[#1b2532] bg-[#101722] p-4">
-          <div className="text-[10px] tracking-widest text-[#7f8da1]">MOMENTUM</div>
-          <div className="mt-3 grid grid-cols-3 gap-3 text-xs">
-            <div>EMA20<br/><b>{decision.ema20.toFixed(2)}</b></div>
-            <div>EMA50<br/><b>{decision.ema50.toFixed(2)}</b></div>
-            <div>RSI14<br/><b>{decision.rsi.toFixed(1)}</b></div>
+          <div className="text-[10px] tracking-widest text-[#7f8da1]">NEWS ANALYSIS</div>
+          <div className="mt-3 space-y-2">{report.news.length?report.news.slice(0,5).map((n,i)=><div key={i} className="border-b border-[#1b2532] pb-2 text-xs"><div>{n.title}</div><div className="mt-1 text-[10px] text-[#617086]">{n.sentiment.toUpperCase()} · {n.publishedAt}</div></div>):<div className="text-xs text-[#617086]">No recent headlines returned.</div>}</div>
+        </div>
+        <div className="rounded border border-[#1b2532] bg-[#101722] p-4">
+          <div className="text-[10px] tracking-widest text-[#7f8da1]">EXTERNAL SOURCES</div>
+          <div className="mt-3 space-y-3 text-xs">
+            <div><b>Forex Factory</b><div className="mt-1 text-[#9aa8ba]">{report.sources.forexFactory.available?report.sources.forexFactory.headline:"Unavailable"}</div></div>
+            <div><b>Capitol Trades</b><div className="mt-1 text-[#9aa8ba]">{report.sources.capitolTrades.available?report.sources.capitolTrades.headline:"Unavailable"}</div></div>
           </div>
         </div>
       </div>
 
-      <div className="grid gap-3 lg:grid-cols-[1fr_1fr]">
-        <div className="rounded border border-[#1b2532] bg-[#101722] p-4">
-          <div className="text-[10px] tracking-widest text-[#7f8da1]">WHY</div>
-          <div className="mt-3 space-y-2 text-xs leading-5">{decision.reasons.map((r, i) => <div key={i}>• {r}</div>)}</div>
-        </div>
-        <div className="rounded border border-[#1b2532] bg-[#101722] p-4">
-          <div className="text-[10px] tracking-widest text-[#7f8da1]">INVALIDATION / NEXT ACTION</div>
-          <div className="mt-3 text-xs leading-5 text-[#c4cfdd]">{decision.invalidation}</div>
-          <div className="mt-4 rounded border border-[#263444] bg-[#0c1118] p-3 text-[10px] leading-5 text-[#7f8da1]">Engine input: 5D of 15-minute OHLCV. For live execution, add a dedicated real-time XAUUSD provider and a high-impact economic-calendar gate.</div>
-        </div>
+      <div className="rounded border border-[#263444] bg-[#0c1118] p-4">
+        <div className="text-[10px] tracking-widest text-[#f5c16c]">ACCURACY / DATA QUALITY GATES</div>
+        <div className="mt-2 grid gap-2 text-xs text-[#9aa8ba] md:grid-cols-3">{report.warnings.map((w,i)=><div key={i}>• {w}</div>)}</div>
       </div>
-
-      <div className="border-t border-[#1b2532] pt-3 text-[10px] text-[#617086]">Updated {updated?.toLocaleTimeString()} · Research/simulation only · The engine does not place orders.</div>
+      <div className="text-[10px] text-[#617086]">Updated {new Date(report.generatedAt).toLocaleTimeString()} · Research/simulation only · The engine does not place orders.</div>
     </div>}
   </section>;
 }
