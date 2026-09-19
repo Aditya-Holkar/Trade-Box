@@ -33,9 +33,9 @@ export default function TradingViewXauusdChart({ symbol }: { symbol: string }) {
       theme: "dark",
       style: "1",
       locale: "en",
-      allow_symbol_change: false,
+      allow_symbol_change: true,
       hide_top_toolbar: false,
-      hide_side_toolbar: true,
+      hide_side_toolbar: false,
       withdateranges: true,
       save_image: false,
       studies: ["MASimple@tv-basicstudies", "RSI@tv-basicstudies", "MACD@tv-basicstudies"],
@@ -66,7 +66,7 @@ export default function TradingViewXauusdChart({ symbol }: { symbol: string }) {
 
       <div
         ref={container}
-        className="relative h-[520px] w-full min-w-0 overflow-hidden sm:h-[600px] lg:h-[700px]"
+        className="relative z-10 h-[520px] w-full min-w-0 overflow-hidden sm:h-[600px] lg:h-[700px] pointer-events-auto"
       />
     </section>
   );
