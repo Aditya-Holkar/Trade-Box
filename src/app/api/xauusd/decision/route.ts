@@ -59,9 +59,9 @@ function makeHorizon(h:string,f:any,macro:number,news:number):Horizon{
   if(bias==="SELL")return {horizon:h,bias,score,confidence,trigger:"Confirm rejection below "+f.support.toFixed(2)+" or a bearish structure break; avoid entries immediately before high-impact USD news.",entry:p.toFixed(2)+" ± "+(a*0.25).toFixed(2),stop:(p+a).toFixed(2),targets:(p-a*1.2).toFixed(2)+" / "+(p-a*2).toFixed(2),rationale:f.details.slice(0,4)};
   return {horizon:h,bias,score,confidence,trigger:"WAIT for a confirmed break/retest with momentum alignment and a clean macro/news window.",entry:"No entry",stop:"—",targets:"—",rationale:f.details.slice(0,4)};
 }
-async function rssNews(){
+async function rssNews(symbol="XAUUSD"){
   try{
-    const r=await fetch("https://feeds.finance.yahoo.com/rss/2.0/headline?s=GC=F&region=US&lang=en-US",{headers:{"User-Agent":"Trade-Box/1.0"},next:{revalidate:300}});
+    const r=await fetch("https://feeds.finance.yahoo.com/rss/2.0/headline?s=${encodeURIComponent(symbol === "XAUUSD" ? "GC=F" : symbol)}&region=US&lang=en-US",{headers:{"User-Agent":"Trade-Box/1.0"},next:{revalidate:300}});
     if(!r.ok)return [];const x=await r.text();
     return [...x.matchAll(/<item>([\s\S]*?)<\/item>/gi)].slice(0,8).map(m=>{const b=m[1],g=(t:string)=>b.match(new RegExp("<"+t+">([\\s\\S]*?)</"+t+">","i"))?.[1]?.replace(/<!\[CDATA\[|\]\]>/g,"").trim()??"",title=g("title");return {title,link:g("link"),publishedAt:g("pubDate"),sentiment:sentiment(title)}}).filter(x=>x.title);
   }catch{return []}
@@ -89,14 +89,14 @@ async function yahooChange(symbol:string){
   }catch{return null}
 }
 
-export async function GET(request: Request){
+export async function GET(request: Request){\n  const requestedSymbol = new URL(request.url).searchParams.get("symbol")?.trim().toUpperCase() || "XAUUSD";
   if (auth) {
     const session = await auth.api.getSession({ headers: request.headers });
     if (!session) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
   }
   try{
     const [quote,m15,daily,news,ff,capitol,dxy,us10y,oil]=await Promise.all([
-      getQuote("XAUUSD"),getHistory("XAUUSD","5d","15m"),getHistory("XAUUSD","1y","1d"),rssNews(),
+      getQuote(requestedSymbol),getHistory(requestedSymbol,"5d","15m"),getHistory(requestedSymbol,"1y","1d"),rssNews(requestedSymbol),
       sourceSnapshot("https://www.forexfactory.com/?page=calendar","ff"),
       sourceSnapshot("https://www.capitoltrades.com/","capitol"),
       yahooChange("DX-Y.NYB"),yahooChange("^TNX"),yahooChange("CL=F")
@@ -106,6 +106,6 @@ export async function GET(request: Request){
     const macro=(ff.sentiment==="positive"?1:ff.sentiment==="negative"?-1:0)+(dxy&&dxy.changePct>0.5?-1:dxy&&dxy.changePct<-0.5?1:0)+(us10y&&us10y.changePct>0.75?-1:us10y&&us10y.changePct<-0.75?1:0)+(capitol.sentiment==="positive"?0.25:capitol.sentiment==="negative"?-0.25:0);
     const fundamentals={dollarIndex:dxy,us10y,oil,centralBankContext:ff.headline,policyFlowContext:capitol.headline};
     const horizons=[makeHorizon("5 MIN",f5,macro,ns),makeHorizon("30 MIN",f30,macro,ns),makeHorizon("1 HOUR",f1,macro,ns),makeHorizon("1 WEEK",fw,macro,ns),makeHorizon("1 MONTH",fm,macro,ns)];
-    return NextResponse.json({quote,horizons,technicals:{m15:f5,m30:f30,h1:f1,w1:fw,m1:fm},news,marketSentiment:{score:ns,label:ns>=2?"BULLISH":ns<=-2?"BEARISH":"MIXED"},macro:{score:macro,label:macro>1?"SUPPORTIVE":macro<-1?"HEADWIND":"MIXED"},fundamentals,sources:{forexFactory:ff,capitolTrades:capitol},generatedAt:Date.now(),warnings:["Confidence is a confluence estimate, not a probability of profit.","CapitolTrades is indirect political/policy-flow context, not a direct XAUUSD positioning feed.","For execution-grade accuracy, use a dedicated real-time XAUUSD spot feed and a structured economic-calendar API."]});
+    return NextResponse.json({quote,horizons,technicals:{m15:f5,m30:f30,h1:f1,w1:fw,m1:fm},news,marketSentiment:{score:ns,label:ns>=2?"BULLISH":ns<=-2?"BEARISH":"MIXED"},macro:{score:macro,label:macro>1?"SUPPORTIVE":macro<-1?"HEADWIND":"MIXED"},fundamentals,sources:{forexFactory:ff,capitolTrades:capitol},generatedAt:Date.now(),warnings:["Confidence is a confluence estimate, not a probability of profit.","CapitolTrades is indirect political/policy-flow context, not a direct market positioning feed.","For execution-grade accuracy, use a dedicated real-time XAUUSD spot feed and a structured economic-calendar API."]});
   }catch(e){return NextResponse.json({error:e instanceof Error?e.message:"XAUUSD intelligence unavailable"},{status:502})}
 }
