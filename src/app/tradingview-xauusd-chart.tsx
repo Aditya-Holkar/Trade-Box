@@ -15,10 +15,8 @@ export default function TradingViewXauusdChart({ symbol }: { symbol: string }) {
     const widget = document.createElement("div");
     widget.className = "tradingview-widget-container__widget";
     Object.assign(widget.style, {
-      position: "absolute",
-      inset: "0",
       width: "100%",
-      height: "100%",
+      height: "calc(100% - 32px)",
     });
 
     const script = document.createElement("script");
@@ -39,6 +37,10 @@ export default function TradingViewXauusdChart({ symbol }: { symbol: string }) {
       withdateranges: true,
       save_image: false,
       studies: ["MASimple@tv-basicstudies", "RSI@tv-basicstudies", "MACD@tv-basicstudies"],
+      show_popup_button: true,
+      popup_width: "1000",
+      popup_height: "650",
+      enable_publishing: false,
       calendar: false,
       support_host: "https://www.tradingview.com"
     });
@@ -66,7 +68,7 @@ export default function TradingViewXauusdChart({ symbol }: { symbol: string }) {
 
       <div
         ref={container}
-        className="relative z-10 h-[520px] w-full min-w-0 overflow-hidden sm:h-[600px] lg:h-[700px] pointer-events-auto"
+        className="relative h-[552px] w-full min-w-0 overflow-hidden sm:h-[632px] lg:h-[732px] pointer-events-auto"
       />
     </section>
   );
