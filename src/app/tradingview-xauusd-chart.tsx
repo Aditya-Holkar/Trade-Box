@@ -9,15 +9,17 @@ export default function TradingViewXauusdChart() {
     const host = container.current;
     if (!host) return;
 
-    host.innerHTML = "";
+    host.replaceChildren();
 
     const widget = document.createElement("div");
     widget.className = "tradingview-widget-container__widget";
     widget.style.height = "calc(100% - 28px)";
     widget.style.width = "100%";
+    widget.style.minHeight = "0";
 
     const script = document.createElement("script");
-    script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
+    script.src =
+      "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
     script.type = "text/javascript";
     script.async = true;
     script.text = JSON.stringify({
@@ -28,9 +30,9 @@ export default function TradingViewXauusdChart() {
       theme: "dark",
       style: "1",
       locale: "en",
-      allow_symbol_change: false,
+      allow_symbol_change: true,
       hide_top_toolbar: false,
-      hide_side_toolbar: false,
+      hide_side_toolbar: true,
       withdateranges: true,
       save_image: false,
       studies: [
@@ -62,17 +64,28 @@ export default function TradingViewXauusdChart() {
     <section className="mt-4 overflow-hidden rounded border border-[#1b2532] bg-[#0c1118]">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#1b2532] px-4 py-3">
         <div>
-          <div className="text-xs font-bold tracking-[0.16em] text-[#5eead4]">PHASE 4 · TECHNICAL ANALYSIS</div>
-          <div className="mt-1 flex items-center gap-3">
+          <div className="text-xs font-bold tracking-[0.16em] text-[#5eead4]">
+            PHASE 4 · TECHNICAL ANALYSIS
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
             <span className="text-lg font-semibold">XAUUSD</span>
-            <span className="text-xs text-[#7f8da1]">DIRECT TRADINGVIEW MARKET CHART</span>
+            <span className="text-xs text-[#7f8da1]">
+              DIRECT TRADINGVIEW MARKET CHART
+            </span>
+            <span className="text-[10px] text-[#617086]">
+              Use the symbol search in the chart toolbar
+            </span>
           </div>
         </div>
         <div className="rounded border border-[#23413d] bg-[#0c1516] px-3 py-1.5 text-[10px] font-bold tracking-wider text-[#5eead4]">
           OANDA:XAUUSD · LIVE WIDGET
         </div>
       </div>
-      <div ref={container} className="h-[680px] w-full" />
+
+      <div
+        ref={container}
+        className="h-[560px] w-full min-w-0 sm:h-[640px] lg:h-[760px]"
+      />
     </section>
   );
 }
