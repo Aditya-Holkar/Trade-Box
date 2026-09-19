@@ -64,12 +64,6 @@ export default function XauusdDecisionPanel(){
         </table>
       </div>
 
-      <div className="rounded border border-[#1b2532] bg-[#101722] p-4">
-        <div className="text-[10px] tracking-widest text-[#7f8da1]">OBSERVABLE CONFLUENCE MAP</div>
-        <div className="mt-1 text-xs text-[#617086]">Reactive visual summary of the multi-horizon engine scores.</div>
-        <div className="mt-3"><XauusdObservableChart data={report.horizons.map(h => ({horizon:h.horizon, score:h.score}))}/></div>
-      </div>
-
       <div className="grid gap-3 lg:grid-cols-4">
         <div className="rounded border border-[#1b2532] bg-[#101722] p-4">
           <div className="text-[10px] tracking-widest text-[#7f8da1]">FUNDAMENTALS / MACRO</div>
