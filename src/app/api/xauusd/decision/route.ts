@@ -61,7 +61,8 @@ function makeHorizon(h:string,f:any,macro:number,news:number):Horizon{
 }
 async function rssNews(symbol="XAUUSD"){
   try{
-    const feedSymbol = encodeURIComponent(symbol === "XAUUSD" ? "GC=F" : symbol);\n    const r=await fetch(`https://feeds.finance.yahoo.com/rss/2.0/headline?s=${feedSymbol}&region=US&lang=en-US`,{headers:{"User-Agent":"Trade-Box/1.0"},next:{revalidate:300}});
+    const feedSymbol = encodeURIComponent(symbol === "XAUUSD" ? "GC=F" : symbol);
+    const r=await fetch(`https://feeds.finance.yahoo.com/rss/2.0/headline?s=${feedSymbol}&region=US&lang=en-US`,{headers:{"User-Agent":"Trade-Box/1.0"},next:{revalidate:300}});
     if(!r.ok)return [];const x=await r.text();
     return [...x.matchAll(/<item>([\s\S]*?)<\/item>/gi)].slice(0,8).map(m=>{const b=m[1],g=(t:string)=>b.match(new RegExp("<"+t+">([\\s\\S]*?)</"+t+">","i"))?.[1]?.replace(/<!\[CDATA\[|\]\]>/g,"").trim()??"",title=g("title");return {title,link:g("link"),publishedAt:g("pubDate"),sentiment:sentiment(title)}}).filter(x=>x.title);
   }catch{return []}
@@ -89,7 +90,8 @@ async function yahooChange(symbol:string){
   }catch{return null}
 }
 
-export async function GET(request: Request){\n  const requestedSymbol = new URL(request.url).searchParams.get("symbol")?.trim().toUpperCase() || "XAUUSD";
+export async function GET(request: Request){
+  const requestedSymbol = new URL(request.url).searchParams.get("symbol")?.trim().toUpperCase() || "XAUUSD";
   if (auth) {
     const session = await auth.api.getSession({ headers: request.headers });
     if (!session) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
