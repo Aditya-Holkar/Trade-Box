@@ -9,6 +9,16 @@ const SYMBOL_ALIASES: Record<string, string> = {
   SILVER: "SI=F",
   WTI: "CL=F",
   BRENT: "BZ=F",
+  BTCUSD: "BTC-USD",
+  ETHUSD: "ETH-USD",
+  SOLUSD: "SOL-USD",
+  XRPUSD: "XRP-USD",
+  BNBUSD: "BNB-USD",
+  DOGEUSD: "DOGE-USD",
+  ADAUSD: "ADA-USD",
+  AVAXUSD: "AVAX-USD",
+  LINKUSD: "LINK-USD",
+  DOTUSD: "DOT-USD",
 };
 
 function normalizeYahooSymbol(input: string): string {
