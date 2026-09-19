@@ -6,9 +6,12 @@ import { authClient } from "@/lib/auth-client";
 const authEnabled = process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED === "true";
 
 export default function AuthGate({ children }: { children: ReactNode }) {
-  const { data: session, isPending } = authClient.useSession();
-
   if (!authEnabled) return <>{children}</>;
+  return <AuthenticatedGate>{children}</AuthenticatedGate>;
+}
+
+function AuthenticatedGate({ children }: { children: ReactNode }) {
+  const { data: session, isPending } = authClient.useSession();
   const [mode, setMode] = useState<"sign-in" | "sign-up">("sign-in");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
