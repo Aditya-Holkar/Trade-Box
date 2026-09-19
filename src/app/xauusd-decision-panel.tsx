@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import XauusdObservableChart from "./xauusd-observable-chart";
-
 type Horizon = {
   horizon: string; bias: "BUY" | "SELL" | "WAIT"; score: number; confidence: number;
   trigger: string; entry: string; stop: string; targets: string; rationale: string[];
