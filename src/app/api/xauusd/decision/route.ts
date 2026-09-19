@@ -90,8 +90,10 @@ async function yahooChange(symbol:string){
 }
 
 export async function GET(request: Request){
-  const session = await auth.api.getSession({ headers: request.headers });
-  if (!session) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+  if (auth) {
+    const session = await auth.api.getSession({ headers: request.headers });
+    if (!session) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+  }
   try{
     const [quote,m15,daily,news,ff,capitol,dxy,us10y,oil]=await Promise.all([
       getQuote("XAUUSD"),getHistory("XAUUSD","5d","15m"),getHistory("XAUUSD","1y","1d"),rssNews(),
