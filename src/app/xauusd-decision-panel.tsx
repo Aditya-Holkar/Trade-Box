@@ -20,23 +20,23 @@ type Report = {
 
 const fmt=(n:number|undefined)=>typeof n==="number"&&Number.isFinite(n)?n.toFixed(2):"—";
 
-export default function XauusdDecisionPanel(){
+export default function XauusdDecisionPanel({ symbol }: { symbol: string }){
   const [report,setReport]=useState<Report|null>(null);
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState<string|null>(null);
 
   async function load(){
     setLoading(true);setError(null);
-    try{const r=await fetch("/api/xauusd/decision",{cache:"no-store"});const b=await r.json();if(!r.ok)throw new Error(b.error??"XAUUSD intelligence unavailable");setReport(b);}
+    try{const normalized=symbol.trim().toUpperCase()||"XAUUSD"; const r=await fetch("/api/xauusd/decision?symbol="+encodeURIComponent(normalized),{cache:"no-store"});const b=await r.json();if(!r.ok)throw new Error(b.error??"XAUUSD intelligence unavailable");setReport(b);}
     catch(e){setError(e instanceof Error?e.message:"XAUUSD intelligence unavailable");}
     finally{setLoading(false);}
   }
-  useEffect(()=>{ void load(); const timer=window.setInterval(()=>void load(),15000); return ()=>window.clearInterval(timer); },[]);
+  useEffect(()=>{ void load(); const timer=window.setInterval(()=>void load(),15000); return ()=>window.clearInterval(timer); },[symbol]);
 
   return <section className="mt-4 overflow-hidden rounded border border-[#1b2532] bg-[#0b1017]">
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#1b2532] px-4 py-4">
       <div>
-        <div className="text-xs font-bold tracking-[.18em] text-[#5eead4]">XAUUSD · MULTI-HORIZON TRADE INTELLIGENCE</div>
+        <div className="text-xs font-bold tracking-[.18em] text-[#5eead4]">{symbol.trim().toUpperCase()||"XAUUSD"} · MULTI-HORIZON TRADE INTELLIGENCE</div>
         <div className="mt-1 text-lg font-semibold">News + sentiment + technicals + macro + policy context</div>
       </div>
       <button onClick={()=>void load()} disabled={loading} className="rounded border border-[#263444] px-3 py-2 text-[10px] font-bold tracking-wider text-[#9aa8ba] hover:border-[#5eead4] hover:text-[#5eead4]">{loading?"ANALYZING…":"REFRESH"}</button>
@@ -50,7 +50,7 @@ export default function XauusdDecisionPanel(){
         <div className="rounded border border-[#23413d] bg-[#0c1516] p-4">
           <div className="text-[10px] tracking-widest text-[#7f8da1]">LIVE MARKET</div>
           <div className="mt-2 font-mono text-3xl font-black">{fmt(report.quote.price)}</div>
-          <div className="mt-2 text-xs text-[#7f8da1]">Bid {fmt(report.quote.bid)} · Ask {fmt(report.quote.ask)}</div><div className="mt-1 text-[10px] text-[#5eead4]">LIVE SPOT · auto-refresh 15s</div>
+          <div className="mt-2 text-xs text-[#7f8da1]">Bid {fmt(report.quote.bid)} · Ask {fmt(report.quote.ask)}</div><div className="mt-1 text-[10px] text-[#5eead4]">LIVE SPOT · auto-refresh 15s · {symbol.trim().toUpperCase()||"XAUUSD"}</div>
         </div>
         <div className="rounded border border-[#1b2532] bg-[#101722] p-4"><div className="text-[10px] tracking-widest text-[#7f8da1]">MARKET SENTIMENT</div><div className="mt-2 text-xl font-black">{report.marketSentiment.label}</div><div className="mt-1 text-xs text-[#7f8da1]">News-flow composite: {report.marketSentiment.score > 0 ? "+" : ""}{report.marketSentiment.score}</div></div>
         <div className="rounded border border-[#1b2532] bg-[#101722] p-4"><div className="text-[10px] tracking-widest text-[#7f8da1]">MACRO / POLICY</div><div className="mt-2 text-xl font-black">{report.macro.label}</div><div className="mt-1 text-xs text-[#7f8da1]">Forex Factory + policy context</div></div>
