@@ -36,7 +36,7 @@ const translations: Record<Language, Record<string,string>> = {
   ar:{intelligence:"ذكاء التداول متعدد الآفاق",subtitle:"الأخبار + المعنويات + الفنيات + الاقتصاد الكلي + السياسة",refresh:"تحديث",analyzing:"جارٍ التحليل…",live:"السوق المباشر",bid:"شراء",ask:"بيع",spot:"السعر الفوري المباشر",marketSentiment:"معنويات السوق",newsFlow:"مؤشر تدفق الأخبار",macro:"الاقتصاد الكلي / السياسة",engine:"وضع المحرك",confirmation:"تأكيد",noOutcomes:"لا توجد نتائج مضمونة",horizon:"الأفق",recommendation:"التوصية",confidence:"الثقة",entry:"الدخول",stop:"وقف الخسارة",targets:"الأهداف",trigger:"المحفز",fundamentals:"الأساسيات / الاقتصاد الكلي",technical:"التوافق الفني",news:"تحليل الأخبار",external:"المصادر الخارجية",quality:"الدقة / جودة البيانات",unavailable:"غير متاح",analysisUpdated:"تحديث التحليل",liveRefreshed:"يتم تحديث السعر المباشر بشكل مستقل كل 15 ثانية",research:"للبحث/المحاكاة فقط · المحرك لا ينفذ أوامر.",language:"اللغة",sourceCoverage:"تغطية المصادر الخارجية المباشرة",forex:"Forex Factory",capitol:"Capitol Trades",sourceStatus:"حالة المصدر"}
 };
 
-export default function XauusdDecisionPanel({ symbol }: { symbol: string }){
+export default function MarketDecisionPanel({ symbol }: { symbol: string }){
   const [report,setReport]=useState<Report|null>(null);
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState<string|null>(null);
@@ -52,10 +52,10 @@ export default function XauusdDecisionPanel({ symbol }: { symbol: string }){
     try{
       const r=await fetch("/api/xauusd/decision?symbol="+encodeURIComponent(normalized),{cache:"no-store"});
       const b=await r.json();
-      if(!r.ok)throw new Error(b.error??"XAUUSD intelligence unavailable");
+      if(!r.ok)throw new Error(b.error??"Market intelligence unavailable");
       if(id===requestRef.current)setReport(b);
     }catch(e){
-      if(id===requestRef.current)setError(e instanceof Error?e.message:"XAUUSD intelligence unavailable");
+      if(id===requestRef.current)setError(e instanceof Error?e.message:"Market intelligence unavailable");
     }finally{
       if(id===requestRef.current)setLoading(false);
     }
@@ -107,7 +107,7 @@ export default function XauusdDecisionPanel({ symbol }: { symbol: string }){
     </div>
 
     {error&&<div className="m-4 rounded border border-[#5b2932] bg-[#1a1014] p-3 text-xs text-[#f08a9a]">{error}</div>}
-    {loading&&!report&&<div className="p-10 text-center text-sm text-[#718096]">Building the XAUUSD evidence stack…</div>}
+    {loading&&!report&&<div className="p-10 text-center text-sm text-[#718096]">Building the market evidence stack…</div>}
 
     {report&&<div className="space-y-4 p-4">
       <div className="grid gap-3 lg:grid-cols-[1.2fr_1fr_1fr_1fr]">
@@ -117,7 +117,7 @@ export default function XauusdDecisionPanel({ symbol }: { symbol: string }){
           <div className="mt-2 text-xs text-[#7f8da1]">{t.bid} {fmt(report.quote.bid)} · {t.ask} {fmt(report.quote.ask)}</div><div className="mt-1 text-[10px] text-[#5eead4]">{t.spot} · price refresh 15s · analysis refresh 7s · {symbol.trim().toUpperCase()||"XAUUSD"}</div><div className="mt-1 text-[10px] text-[#617086]">Feed {report.quote.provider??"live"} · updated {liveUpdatedAt?new Date(liveUpdatedAt).toLocaleTimeString():"—"}</div>
         </div>
         <div className="rounded border border-[#1b2532] bg-[#101722] p-4"><div className="text-[10px] tracking-widest text-[#7f8da1]">{t.marketSentiment}</div><div className="mt-2 text-xl font-black">{report.marketSentiment.label}</div><div className="mt-1 text-xs text-[#7f8da1]">{t.newsFlow}: {report.marketSentiment.score > 0 ? "+" : ""}{report.marketSentiment.score}</div></div>
-        <div className="rounded border border-[#1b2532] bg-[#101722] p-4"><div className="text-[10px] tracking-widest text-[#7f8da1]">{t.macro}</div><div className="mt-2 text-xl font-black">{report.macro.label}</div><div className="mt-1 text-xs text-[#7f8da1]">Forex Factory + policy context</div></div>
+        <div className="rounded border border-[#1b2532] bg-[#101722] p-4"><div className="text-[10px] tracking-widest text-[#7f8da1]">{t.macro}</div><div className="mt-2 text-xl font-black">{report.macro.label}</div><div className="mt-1 text-xs text-[#7f8da1]">Global macro + policy context</div></div>
         <div className="rounded border border-[#1b2532] bg-[#101722] p-4"><div className="text-[10px] tracking-widest text-[#7f8da1]">{t.engine}</div><div className="mt-2 text-xl font-black text-[#f5c16c]">{t.confirmation}</div><div className="mt-1 text-xs text-[#7f8da1]">{t.noOutcomes}</div></div>
       </div>
 
@@ -136,7 +136,7 @@ export default function XauusdDecisionPanel({ symbol }: { symbol: string }){
             <div>US10Y<br/><b>{report.fundamentals.us10y?report.fundamentals.us10y.value.toFixed(2):"—"}</b><div className="text-[#617086]">{report.fundamentals.us10y?report.fundamentals.us10y.changePct.toFixed(2)+"% 5D":"—"}</div></div>
             <div>OIL<br/><b>{report.fundamentals.oil?report.fundamentals.oil.value.toFixed(2):"—"}</b><div className="text-[#617086]">{report.fundamentals.oil?report.fundamentals.oil.changePct.toFixed(2)+"% 5D":"—"}</div></div>
           </div>
-          <div className="mt-3 text-[10px] leading-4 text-[#617086]">Gold has no corporate-style fundamentals; this panel uses macro fundamentals: USD, rates, energy, central-bank context and policy flow.</div>
+          <div className="mt-3 text-[10px] leading-4 text-[#617086]">Macro context uses USD, rates, energy, central-bank context and policy flow alongside symbol-specific price action and news.</div>
         </div>
         <div className="rounded border border-[#1b2532] bg-[#101722] p-4">
           <div className="text-[10px] tracking-widest text-[#7f8da1]">{t.technical}</div>
