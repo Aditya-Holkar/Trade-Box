@@ -115,7 +115,7 @@ export async function GET(request: Request){
       getQuote(requestedSymbol),getHistory(requestedSymbol,"5d","15m"),getHistory(requestedSymbol,"1y","1d"),rssNews(requestedSymbol),
       sourceSnapshot("https://www.forexfactory.com/?page=calendar","ff"),
       sourceSnapshot("https://www.capitoltrades.com/","capitol"),
-      yahooChange("DX-Y.NYB"),yahooChange("^TNX"),yahooChange("CL=F")
+      yahooChange("DX-Y.NYB"),yahooChange("^TNX"),yahooChange("CL=F"),yahooChange(requestedSymbol),yahooChange("^GSPC"),yahooChange("^VIX")
     ]);
     const f5=frame(m15,"M15"),f30=frame(resample(m15,2),"30M"),f1=frame(resample(m15,4),"1H"),fw=frame(resample(daily,5),"1W"),fm=frame(resample(daily,20),"1M");
     const ns=news.filter((x:any)=>x.sentiment==="positive").length-news.filter((x:any)=>x.sentiment==="negative").length;
