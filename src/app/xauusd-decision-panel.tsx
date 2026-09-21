@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useLanguage } from "./language-context";
 type Horizon = {
   horizon: string; bias: "BUY" | "SELL" | "WAIT"; score: number; confidence: number;
   trigger: string; entry: string; stop: string; targets: string; rationale: string[];
@@ -20,13 +21,7 @@ type Report = {
 
 const fmt=(n:number|undefined)=>typeof n==="number"&&Number.isFinite(n)?n.toFixed(2):"—";
 
-type Language = "en"|"hi"|"mr"|"es"|"fr"|"de"|"ja"|"zh"|"ko"|"ar";
-const languages: {code: Language; label: string}[] = [
-  {code:"en",label:"English"},{code:"hi",label:"हिन्दी"},{code:"mr",label:"मराठी"},
-  {code:"es",label:"Español"},{code:"fr",label:"Français"},{code:"de",label:"Deutsch"},
-  {code:"ja",label:"日本語"},{code:"zh",label:"中文"},{code:"ko",label:"한국어"},{code:"ar",label:"العربية"}
-];
-const translations: Record<Language, Record<string,string>> = {
+type Language = "en"|"hi"|"mr"|"es"|"fr"|"de"|"ja"|"zh"|"ko"|const translations: Record<Language, Record<string,string>> = {
   en:{intelligence:"MULTI-HORIZON TRADE INTELLIGENCE",subtitle:"News + sentiment + technicals + macro + policy context",refresh:"REFRESH",analyzing:"ANALYZING…",live:"LIVE MARKET",bid:"Bid",ask:"Ask",spot:"LIVE SPOT",marketSentiment:"MARKET SENTIMENT",newsFlow:"News-flow composite",macro:"MACRO / POLICY",engine:"ENGINE MODE",confirmation:"CONFIRMATION",noOutcomes:"No guaranteed outcomes",horizon:"HORIZON",recommendation:"RECOMMENDATION",confidence:"CONFIDENCE",entry:"ENTRY",stop:"STOP",targets:"TARGETS",trigger:"TRIGGER",fundamentals:"FUNDAMENTALS / MACRO",technical:"TECHNICAL CONFLUENCE",news:"NEWS ANALYSIS",external:"EXTERNAL SOURCES",quality:"ACCURACY / DATA QUALITY GATES",unavailable:"Unavailable",analysisUpdated:"Analysis updated",liveRefreshed:"Live price is refreshed independently every 15s",research:"Research/simulation only · The engine does not place orders.",language:"LANGUAGE",sourceCoverage:"Live external-source coverage",forex:"Forex Factory",capitol:"Capitol Trades",sourceStatus:"Source status"},
   hi:{intelligence:"बहु-अवधि ट्रेड इंटेलिजेंस",subtitle:"समाचार + भावना + तकनीकी + मैक्रो + नीति संदर्भ",refresh:"रिफ्रेश",analyzing:"विश्लेषण…",live:"लाइव मार्केट",bid:"बिड",ask:"आस्क",spot:"लाइव स्पॉट",marketSentiment:"मार्केट सेंटीमेंट",newsFlow:"न्यूज़-फ्लो मिश्रित स्कोर",macro:"मैक्रो / नीति",engine:"इंजन मोड",confirmation:"कन्फर्मेशन",noOutcomes:"परिणाम की गारंटी नहीं",horizon:"अवधि",recommendation:"सिफारिश",confidence:"विश्वास",entry:"एंट्री",stop:"स्टॉप",targets:"टार्गेट",trigger:"ट्रिगर",fundamentals:"फंडामेंटल / मैक्रो",technical:"तकनीकी संगम",news:"समाचार विश्लेषण",external:"बाहरी स्रोत",quality:"सटीकता / डेटा गुणवत्ता",unavailable:"उपलब्ध नहीं",analysisUpdated:"विश्लेषण अपडेट",liveRefreshed:"लाइव कीमत हर 15 सेकंड में स्वतंत्र रूप से अपडेट होती है",research:"रिसर्च/सिमुलेशन केवल · इंजन ऑर्डर नहीं लगाता।",language:"भाषा",sourceCoverage:"लाइव बाहरी-स्रोत कवरेज",forex:"Forex Factory",capitol:"Capitol Trades",sourceStatus:"स्रोत स्थिति"},
   mr:{intelligence:"बहु-अवधी ट्रेड इंटेलिजन्स",subtitle:"बातम्या + भावना + तांत्रिक + मॅक्रो + धोरण संदर्भ",refresh:"रिफ्रेश",analyzing:"विश्लेषण…",live:"लाइव्ह मार्केट",bid:"बिड",ask:"आस्क",spot:"लाइव्ह स्पॉट",marketSentiment:"मार्केट सेंटीमेंट",newsFlow:"न्यूज़-फ्लो मिश्रित स्कोअर",macro:"मॅक्रो / धोरण",engine:"इंजिन मोड",confirmation:"कन्फर्मेशन",noOutcomes:"परिणामाची हमी नाही",horizon:"कालावधी",recommendation:"शिफारस",confidence:"विश्वास",entry:"एंट्री",stop:"स्टॉप",targets:"टार्गेट",trigger:"ट्रिगर",fundamentals:"फंडामेंटल / मॅक्रो",technical:"तांत्रिक संगम",news:"बातमी विश्लेषण",external:"बाह्य स्रोत",quality:"अचूकता / डेटा गुणवत्ता",unavailable:"उपलब्ध नाही",analysisUpdated:"विश्लेषण अपडेट",liveRefreshed:"लाइव्ह किंमत स्वतंत्रपणे दर 15 सेकंदांनी अपडेट होते",research:"रिसर्च/सिम्युलेशन फक्त · इंजिन ऑर्डर देत नाही.",language:"भाषा",sourceCoverage:"लाइव्ह बाह्य-स्रोत कव्हरेज",forex:"Forex Factory",capitol:"Capitol Trades",sourceStatus:"स्रोत स्थिती"},
@@ -43,7 +38,9 @@ export default function XauusdDecisionPanel({ symbol }: { symbol: string }){
   const [report,setReport]=useState<Report|null>(null);
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState<string|null>(null);
-  const [liveUpdatedAt,setLiveUpdatedAt]=useState<number|null>(null);  const [language,setLanguage]=useState<Language>("en");  const t=translations[language];
+  const [liveUpdatedAt,setLiveUpdatedAt]=useState<number|null>(null);
+  const { language } = useLanguage();
+  const t=translations[language];
   const requestRef=useRef(0);
 
   async function loadAnalysis(){
@@ -101,7 +98,7 @@ export default function XauusdDecisionPanel({ symbol }: { symbol: string }){
   return <section dir={language==="ar"?"rtl":"ltr"} className="mt-4 overflow-hidden rounded border border-[#1b2532] bg-[#0b1017]">
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#1b2532] px-4 py-4">
       <div>
-        <div className="text-xs font-bold tracking-[.18em] text-[#5eead4]">{symbol.trim().toUpperCase()||"XAUUSD"} · MULTI-HORIZON TRADE INTELLIGENCE</div>
+        <div className="text-xs font-bold tracking-[.18em] text-[#5eead4]">{symbol.trim().toUpperCase()||"XAUUSD"} · {t.intelligence}</div>
         <div className="mt-1 text-lg font-semibold">{t.subtitle}</div>
       </div>
       <button onClick={()=>void loadAnalysis()} disabled={loading} className="rounded border border-[#263444] px-3 py-2 text-[10px] font-bold tracking-wider text-[#9aa8ba] hover:border-[#5eead4] hover:text-[#5eead4]">{loading?t.analyzing:t.refresh}</button>
