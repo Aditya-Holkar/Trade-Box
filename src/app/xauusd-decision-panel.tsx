@@ -46,7 +46,24 @@ export default function XauusdDecisionPanel({ symbol }: { symbol: string }){
       const r=await fetch("/api/xauusd/live?symbol="+encodeURIComponent(normalized),{cache:"no-store"});
       const b=await r.json();
       if(!r.ok)throw new Error(b.error??"Live market unavailable");
-      setReport(prev=>prev?{...prev,quote:b.quote}:prev);
+      setReport(prev=>{
+        if(!prev)return prev;
+        const price=Number(b.quote?.price);
+        if(!Number.isFinite(price))return prev;
+        const horizons=prev.horizons.map(h=>{
+          const key=h.horizon==="5 MIN"?"m15":h.horizon==="30 MIN"?"m30":h.horizon==="1 HOUR"?"h1":h.horizon==="1 WEEK"?"w1":"m1";
+          const tech=prev.technicals[key];
+          const atr=Math.max(Number(tech?.atr)||0,price*0.002);
+          if(h.bias==="BUY"){
+            return {...h,entry:price.toFixed(2)+" ± "+(atr*0.25).toFixed(2),stop:(price-atr).toFixed(2),targets:(price+atr*1.2).toFixed(2)+" / "+(price+atr*2).toFixed(2)};
+          }
+          if(h.bias==="SELL"){
+            return {...h,entry:price.toFixed(2)+" ± "+(atr*0.25).toFixed(2),stop:(price+atr).toFixed(2),targets:(price-atr*1.2).toFixed(2)+" / "+(price-atr*2).toFixed(2)};
+          }
+          return {...h,entry:"No entry",stop:"—",targets:"—"};
+        });
+        return {...prev,quote:b.quote,horizons};
+      });
       setLiveUpdatedAt(b.generatedAt);
     }catch(e){
       if(!report)setError(e instanceof Error?e.message:"Live market unavailable");
