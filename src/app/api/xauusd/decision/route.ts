@@ -9,8 +9,8 @@ type Candle = { time: number; open: number; high: number; low: number; close: nu
 type Bias = "BUY" | "SELL" | "WAIT";
 type Horizon = { horizon: string; bias: Bias; score: number; confidence: number; trigger: string; entry: string; stop: string; targets: string; rationale: string[] };
 
-const POS = ["rises","rise","surge","surges","bullish","buy","buys","inflow","easing","dovish","support","strong","gain","gains","record"];
-const NEG = ["falls","fall","drop","drops","bearish","sell","sells","outflow","hawkish","warning","weak","loss","losses","decline","higher yields","strong dollar"];
+const POS = ["rises","rise","surge","surges","bullish","buy","buys","inflow","easing","dovish","support","strong","gain","gains","record","beats","growth","upgrade","upgraded","expands","expansion","launch"];
+const NEG = ["falls","fall","drop","drops","bearish","sell","sells","outflow","hawkish","warning","weak","loss","losses","decline","higher yields","strong dollar","misses","downgrade","downgraded","cuts","cut","layoffs","lawsuit"];
 
 function sentiment(text: string) {
   const t = text.toLowerCase();
@@ -59,9 +59,9 @@ function makeHorizon(h:string,f:any,macro:number,news:number):Horizon{
   if(bias==="SELL")return {horizon:h,bias,score,confidence,trigger:"Confirm rejection below "+f.support.toFixed(2)+" or a bearish structure break; avoid entries immediately before high-impact USD news.",entry:p.toFixed(2)+" ± "+(a*0.25).toFixed(2),stop:(p+a).toFixed(2),targets:(p-a*1.2).toFixed(2)+" / "+(p-a*2).toFixed(2),rationale:f.details.slice(0,4)};
   return {horizon:h,bias,score,confidence,trigger:"WAIT for a confirmed break/retest with momentum alignment and a clean macro/news window.",entry:"No entry",stop:"—",targets:"—",rationale:f.details.slice(0,4)};
 }
-async function rssNews(symbol="XAUUSD"){
+function normalizeRequestedSymbol(input: string) {\n  const raw = input.trim().toUpperCase();\n  if (!raw) return "XAUUSD";\n  const [exchange, ticker] = raw.includes(":") ? raw.split(/:(.*)/s, 2) : ["", raw];\n  if (exchange === "OANDA" || exchange === "FX_IDC" || exchange === "FXCM") return ticker.endsWith("=X") ? ticker : ticker + "=X";\n  if (exchange === "COINBASE" || exchange === "BINANCE" || exchange === "BYBIT") return ticker.endsWith("-USD") ? ticker : ticker.replace(/USD$/, "") + "-USD";\n  if (exchange === "NSE") return ticker + ".NS";\n  if (exchange === "BSE") return ticker + ".BO";\n  if (exchange === "TVC") return ({SPX:"^GSPC",NDX:"^NDX",VIX:"^VIX"} as Record<string,string>)[ticker] ?? ticker;\n  if (exchange === "DJ") return ticker === "DJI" ? "^DJI" : ticker;\n  if (ticker === "BRK.B") return "BRK-B";\n  return ticker;\n}\n\nasync function rssNews(symbol="XAUUSD"){
   try{
-    const feedSymbol = encodeURIComponent(symbol === "XAUUSD" ? "GC=F" : symbol);
+    const feedSymbol = encodeURIComponent(normalizeRequestedSymbol(symbol));
     const r=await fetch(`https://feeds.finance.yahoo.com/rss/2.0/headline?s=${feedSymbol}&region=US&lang=en-US`,{headers:{"User-Agent":"Trade-Box/1.0"},next:{revalidate:300}});
     if(!r.ok)return [];const x=await r.text();
     return [...x.matchAll(/<item>([\s\S]*?)<\/item>/gi)].slice(0,8).map(m=>{const b=m[1],g=(t:string)=>b.match(new RegExp("<"+t+">([\\s\\S]*?)</"+t+">","i"))?.[1]?.replace(/<!\[CDATA\[|\]\]>/g,"").trim()??"",title=g("title");return {title,link:g("link"),publishedAt:g("pubDate"),sentiment:sentiment(title)}}).filter(x=>x.title);
@@ -108,6 +108,6 @@ export async function GET(request: Request){
     const macro=(ff.sentiment==="positive"?1:ff.sentiment==="negative"?-1:0)+(dxy&&dxy.changePct>0.5?-1:dxy&&dxy.changePct<-0.5?1:0)+(us10y&&us10y.changePct>0.75?-1:us10y&&us10y.changePct<-0.75?1:0)+(capitol.sentiment==="positive"?0.25:capitol.sentiment==="negative"?-0.25:0);
     const fundamentals={dollarIndex:dxy,us10y,oil,centralBankContext:ff.headline,policyFlowContext:capitol.headline};
     const horizons=[makeHorizon("5 MIN",f5,macro,ns),makeHorizon("30 MIN",f30,macro,ns),makeHorizon("1 HOUR",f1,macro,ns),makeHorizon("1 WEEK",fw,macro,ns),makeHorizon("1 MONTH",fm,macro,ns)];
-    return NextResponse.json({quote,horizons,technicals:{m15:f5,m30:f30,h1:f1,w1:fw,m1:fm},news,marketSentiment:{score:ns,label:ns>=2?"BULLISH":ns<=-2?"BEARISH":"MIXED"},macro:{score:macro,label:macro>1?"SUPPORTIVE":macro<-1?"HEADWIND":"MIXED"},fundamentals,sources:{forexFactory:ff,capitolTrades:capitol},generatedAt:Date.now(),warnings:["Confidence is a confluence estimate, not a probability of profit.","CapitolTrades is indirect political/policy-flow context, not a direct market positioning feed.","For execution-grade accuracy, use a dedicated real-time XAUUSD spot feed and a structured economic-calendar API."]});
-  }catch(e){return NextResponse.json({error:e instanceof Error?e.message:"XAUUSD intelligence unavailable"},{status:502})}
+    return NextResponse.json({quote,horizons,technicals:{m15:f5,m30:f30,h1:f1,w1:fw,m1:fm},news,marketSentiment:{score:ns,label:ns>=2?"BULLISH":ns<=-2?"BEARISH":"MIXED"},macro:{score:macro,label:macro>1?"SUPPORTIVE":macro<-1?"HEADWIND":"MIXED"},fundamentals,sources:{forexFactory:ff,capitolTrades:capitol},generatedAt:Date.now(),warnings:["Confidence is a confluence estimate, not a probability of profit.","Technical, news and macro signals are combined; the result is an analytical scenario, not a guaranteed outcome.","Data availability varies by symbol and source; some TradingView instruments do not have a matching Yahoo Finance feed."]});
+  }catch(e){return NextResponse.json({error:e instanceof Error?e.message:"Market intelligence unavailable"},{status:502})}
 }
