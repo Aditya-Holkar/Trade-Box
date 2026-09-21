@@ -43,7 +43,7 @@ export default function XauusdDecisionPanel({ symbol }: { symbol: string }){
   const [report,setReport]=useState<Report|null>(null);
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState<string|null>(null);
-  const [liveUpdatedAt,setLiveUpdatedAt]=useState<number|null>(null);\n  const [language,setLanguage]=useState<Language>("en");\n  const t=translations[language];
+  const [liveUpdatedAt,setLiveUpdatedAt]=useState<number|null>(null);  const [language,setLanguage]=useState<Language>("en");  const t=translations[language];
   const requestRef=useRef(0);
 
   async function loadAnalysis(){
