@@ -81,21 +81,36 @@ interface YahooChartResponse {
 }
 
 async function fetchChart(symbol: string, range: string, interval: string) {
-  const url = new URL(`${BASE_URL}/v8/finance/chart/${encodeURIComponent(symbol)}`);
-  url.searchParams.set("range", range);
-  url.searchParams.set("interval", interval);
-  url.searchParams.set("events", "div,splits");
+  let lastError = "No market data";
 
-  const response = await fetch(url, {
-    headers: { "User-Agent": "Trade-Box/0.1" },
-    next: { revalidate: 30 },
-  });
+  for (const base of BASE_URLS) {
+    const url = new URL(`${base}/v8/finance/chart/${encodeURIComponent(symbol)}`);
+    url.searchParams.set("range", range);
+    url.searchParams.set("interval", interval);
+    url.searchParams.set("events", "div,splits");
 
-  if (!response.ok) throw new Error(`Yahoo Finance returned HTTP ${response.status}`);
-  const data = (await response.json()) as YahooChartResponse;
-  const result = data.chart?.result?.[0];
-  if (!result) throw new Error(data.chart?.error?.description ?? `No market data for ${symbol}`);
-  return result;
+    try {
+      const response = await fetch(url, {
+        headers: { "User-Agent": "Trade-Box/0.1" },
+        next: { revalidate: 30 },
+      });
+
+      if (!response.ok) {
+        lastError = `HTTP ${response.status}`;
+        continue;
+      }
+
+      const data = (await response.json()) as YahooChartResponse;
+      const result = data.chart?.result?.[0];
+      if (result) return result;
+
+      lastError = data.chart?.error?.description ?? "No result";
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : "Request failed";
+    }
+  }
+
+  throw new Error(`Yahoo Finance could not load ${symbol} (${lastError})`);
 }
 
 export const yahooProvider: MarketDataProvider = {
