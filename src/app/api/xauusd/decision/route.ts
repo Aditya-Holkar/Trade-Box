@@ -59,7 +59,21 @@ function makeHorizon(h:string,f:any,macro:number,news:number):Horizon{
   if(bias==="SELL")return {horizon:h,bias,score,confidence,trigger:"Confirm rejection below "+f.support.toFixed(2)+" or a bearish structure break; avoid entries immediately before high-impact USD news.",entry:p.toFixed(2)+" ± "+(a*0.25).toFixed(2),stop:(p+a).toFixed(2),targets:(p-a*1.2).toFixed(2)+" / "+(p-a*2).toFixed(2),rationale:f.details.slice(0,4)};
   return {horizon:h,bias,score,confidence,trigger:"WAIT for a confirmed break/retest with momentum alignment and a clean macro/news window.",entry:"No entry",stop:"—",targets:"—",rationale:f.details.slice(0,4)};
 }
-function normalizeRequestedSymbol(input: string) {\n  const raw = input.trim().toUpperCase();\n  if (!raw) return "XAUUSD";\n  const [exchange, ticker] = raw.includes(":") ? raw.split(/:(.*)/s, 2) : ["", raw];\n  if (exchange === "OANDA" || exchange === "FX_IDC" || exchange === "FXCM") return ticker.endsWith("=X") ? ticker : ticker + "=X";\n  if (exchange === "COINBASE" || exchange === "BINANCE" || exchange === "BYBIT") return ticker.endsWith("-USD") ? ticker : ticker.replace(/USD$/, "") + "-USD";\n  if (exchange === "NSE") return ticker + ".NS";\n  if (exchange === "BSE") return ticker + ".BO";\n  if (exchange === "TVC") return ({SPX:"^GSPC",NDX:"^NDX",VIX:"^VIX"} as Record<string,string>)[ticker] ?? ticker;\n  if (exchange === "DJ") return ticker === "DJI" ? "^DJI" : ticker;\n  if (ticker === "BRK.B") return "BRK-B";\n  return ticker;\n}\n\nasync function rssNews(symbol="XAUUSD"){
+function normalizeRequestedSymbol(input: string) {
+  const raw = input.trim().toUpperCase();
+  if (!raw) return "XAUUSD";
+  const [exchange, ticker] = raw.includes(":") ? raw.split(/:(.*)/s, 2) : ["", raw];
+  if (exchange === "OANDA" || exchange === "FX_IDC" || exchange === "FXCM") return ticker.endsWith("=X") ? ticker : ticker + "=X";
+  if (exchange === "COINBASE" || exchange === "BINANCE" || exchange === "BYBIT") return ticker.endsWith("-USD") ? ticker : ticker.replace(/USD$/, "") + "-USD";
+  if (exchange === "NSE") return ticker + ".NS";
+  if (exchange === "BSE") return ticker + ".BO";
+  if (exchange === "TVC") return ({SPX:"^GSPC",NDX:"^NDX",VIX:"^VIX"} as Record<string,string>)[ticker] ?? ticker;
+  if (exchange === "DJ") return ticker === "DJI" ? "^DJI" : ticker;
+  if (ticker === "BRK.B") return "BRK-B";
+  return ticker;
+}
+
+async function rssNews(symbol="XAUUSD"){
   try{
     const feedSymbol = encodeURIComponent(normalizeRequestedSymbol(symbol));
     const r=await fetch(`https://feeds.finance.yahoo.com/rss/2.0/headline?s=${feedSymbol}&region=US&lang=en-US`,{headers:{"User-Agent":"Trade-Box/1.0"},next:{revalidate:300}});
