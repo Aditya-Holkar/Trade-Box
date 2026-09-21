@@ -31,7 +31,7 @@ export default function XauusdDecisionPanel({ symbol }: { symbol: string }){
     catch(e){setError(e instanceof Error?e.message:"XAUUSD intelligence unavailable");}
     finally{setLoading(false);}
   }
-  useEffect(()=>{ void load(); const timer=window.setInterval(()=>void load(),15000); return ()=>window.clearInterval(timer); },[symbol]);
+  useEffect(()=>{ void load(); const timer=window.setInterval(()=>void load(),7000); return ()=>window.clearInterval(timer); },[symbol]);
 
   return <section className="mt-4 overflow-hidden rounded border border-[#1b2532] bg-[#0b1017]">
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#1b2532] px-4 py-4">
@@ -50,7 +50,7 @@ export default function XauusdDecisionPanel({ symbol }: { symbol: string }){
         <div className="rounded border border-[#23413d] bg-[#0c1516] p-4">
           <div className="text-[10px] tracking-widest text-[#7f8da1]">LIVE MARKET</div>
           <div className="mt-2 font-mono text-3xl font-black">{fmt(report.quote.price)}</div>
-          <div className="mt-2 text-xs text-[#7f8da1]">Bid {fmt(report.quote.bid)} · Ask {fmt(report.quote.ask)}</div><div className="mt-1 text-[10px] text-[#5eead4]">LIVE SPOT · auto-refresh 15s · {symbol.trim().toUpperCase()||"XAUUSD"}</div>
+          <div className="mt-2 text-xs text-[#7f8da1]">Bid {fmt(report.quote.bid)} · Ask {fmt(report.quote.ask)}</div><div className="mt-1 text-[10px] text-[#5eead4]">LIVE SPOT · auto-refresh 7s · {symbol.trim().toUpperCase()||"XAUUSD"}</div>
         </div>
         <div className="rounded border border-[#1b2532] bg-[#101722] p-4"><div className="text-[10px] tracking-widest text-[#7f8da1]">MARKET SENTIMENT</div><div className="mt-2 text-xl font-black">{report.marketSentiment.label}</div><div className="mt-1 text-xs text-[#7f8da1]">News-flow composite: {report.marketSentiment.score > 0 ? "+" : ""}{report.marketSentiment.score}</div></div>
         <div className="rounded border border-[#1b2532] bg-[#101722] p-4"><div className="text-[10px] tracking-widest text-[#7f8da1]">MACRO / POLICY</div><div className="mt-2 text-xl font-black">{report.macro.label}</div><div className="mt-1 text-xs text-[#7f8da1]">Forex Factory + policy context</div></div>
