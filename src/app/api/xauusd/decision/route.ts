@@ -62,7 +62,7 @@ function makeHorizon(h:string,f:any,macro:number,news:number):Horizon{
 function normalizeRequestedSymbol(input: string) {
   const raw = input.trim().toUpperCase();
   if (!raw) return "XAUUSD";
-  const [exchange, ticker] = raw.includes(":") ? raw.split(/:(.*)/s, 2) : ["", raw];
+  const [exchange, ticker] = raw.includes(":") ? raw.split(/:(.*)/, 2) : ["", raw];
   if (exchange === "OANDA" || exchange === "FX_IDC" || exchange === "FXCM") return ticker.endsWith("=X") ? ticker : ticker + "=X";
   if (exchange === "COINBASE" || exchange === "BINANCE" || exchange === "BYBIT") return ticker.endsWith("-USD") ? ticker : ticker.replace(/USD$/, "") + "-USD";
   if (exchange === "NSE") return ticker + ".NS";
