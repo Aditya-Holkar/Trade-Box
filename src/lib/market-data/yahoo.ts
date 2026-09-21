@@ -19,6 +19,7 @@ const SYMBOL_ALIASES: Record<string, string> = {
   AVAXUSD: "AVAX-USD",
   LINKUSD: "LINK-USD",
   DOTUSD: "DOT-USD",
+  VEDL: "VEDL.NS",
 };
 
 function normalizeYahooSymbol(input: string): string {
