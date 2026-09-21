@@ -22,11 +22,22 @@ const SYMBOL_ALIASES: Record<string, string> = {
 };
 
 function normalizeYahooSymbol(input: string): string {
-  const symbol = input.trim().toUpperCase();
+  const raw = input.trim().toUpperCase();
+  const [exchange, tickerPart] = raw.includes(":") ? raw.split(/:(.*)/s, 2) : ["", raw];
+  const symbol = tickerPart || raw;
+
+  if (exchange === "OANDA" || exchange === "FX_IDC" || exchange === "FXCM") return symbol.endsWith("=X") ? symbol : symbol + "=X";
+  if (exchange === "COINBASE" || exchange === "BINANCE" || exchange === "BYBIT") return symbol.endsWith("-USD") ? symbol : symbol.replace(/USD$/, "") + "-USD";
+  if (exchange === "NSE") return symbol + ".NS";
+  if (exchange === "BSE") return symbol + ".BO";
+  if (exchange === "TVC") {
+    const indexAliases: Record<string,string> = { SPX: "^GSPC", NDX: "^NDX", VIX: "^VIX" };
+    if (indexAliases[symbol]) return indexAliases[symbol];
+  }
+  if (exchange === "DJ" && symbol === "DJI") return "^DJI";
+  if (symbol === "BRK.B") return "BRK-B";
   if (SYMBOL_ALIASES[symbol]) return SYMBOL_ALIASES[symbol];
   if (symbol.endsWith("=X")) return symbol;
-
-  // Yahoo represents standard FX pairs as e.g. EURUSD=X.
   if (/^[A-Z]{6}$/.test(symbol)) return `${symbol}=X`;
   return symbol;
 }
