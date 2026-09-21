@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import XauusdDecisionPanel from "./xauusd-decision-panel";
+import TradingViewXauusdChart from "./tradingview-xauusd-chart";
 import { LanguageProvider, languages, useLanguage, type Language } from "./language-context";
 
 const pageText: Record<Language,{search:string;description:string;button:string;placeholder:string;language:string}> = {
@@ -67,6 +68,7 @@ function HomeContent() {
             </div>
           </div>
         </div>
+        <TradingViewXauusdChart symbol={symbol} />
         <XauusdDecisionPanel symbol={symbol} />
       </div>
     </main>
