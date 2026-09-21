@@ -111,7 +111,7 @@ export async function GET(request: Request){
     if (!session) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
   }
   try{
-    const [quote,m15,daily,news,ff,capitol,dxy,us10y,oil]=await Promise.all([
+    const [quote,m15,daily,news,ff,capitol,dxy,us10y,oil,symbol5d,spx,vix]=await Promise.all([
       getQuote(requestedSymbol),getHistory(requestedSymbol,"5d","15m"),getHistory(requestedSymbol,"1y","1d"),rssNews(requestedSymbol),
       sourceSnapshot("https://www.forexfactory.com/?page=calendar","ff"),
       sourceSnapshot("https://www.capitoltrades.com/","capitol"),
@@ -120,7 +120,18 @@ export async function GET(request: Request){
     const f5=frame(m15,"M15"),f30=frame(resample(m15,2),"30M"),f1=frame(resample(m15,4),"1H"),fw=frame(resample(daily,5),"1W"),fm=frame(resample(daily,20),"1M");
     const ns=news.filter((x:any)=>x.sentiment==="positive").length-news.filter((x:any)=>x.sentiment==="negative").length;
     const macro=(ff.sentiment==="positive"?1:ff.sentiment==="negative"?-1:0)+(dxy&&dxy.changePct>0.5?-1:dxy&&dxy.changePct<-0.5?1:0)+(us10y&&us10y.changePct>0.75?-1:us10y&&us10y.changePct<-0.75?1:0)+(capitol.sentiment==="positive"?0.25:capitol.sentiment==="negative"?-0.25:0);
-    const fundamentals={dollarIndex:dxy,us10y,oil,centralBankContext:ff.headline,policyFlowContext:capitol.headline};
+    const assetSymbol=normalizeRequestedSymbol(requestedSymbol);
+    const isCrypto=/-USD$/.test(assetSymbol);
+    const isFx=/=X$/.test(assetSymbol);
+    const isCommodity=["XAUUSD","XAGUSD","CL=F","BZ=F","NG=F"].includes(assetSymbol);
+    const drivers=isCrypto
+      ? [{label:assetSymbol,value:symbol5d},{label:"DXY",value:dxy},{label:"NASDAQ 100",value:await yahooChange("^NDX")},{label:"US10Y",value:us10y}]
+      : isFx
+      ? [{label:"DXY",value:dxy},{label:"US10Y",value:us10y},{label:"OIL",value:oil},{label:"VIX",value:vix}]
+      : isCommodity
+      ? [{label:assetSymbol,value:symbol5d},{label:"DXY",value:dxy},{label:"US10Y",value:us10y},{label:"OIL",value:oil}]
+      : [{label:assetSymbol,value:symbol5d},{label:"S&P 500",value:spx},{label:"US10Y",value:us10y},{label:"DXY",value:dxy}];
+    const fundamentals={dollarIndex:dxy,us10y,oil,centralBankContext:ff.headline,policyFlowContext:capitol.headline,drivers};
     const horizons=[makeHorizon("5 MIN",f5,macro,ns),makeHorizon("30 MIN",f30,macro,ns),makeHorizon("1 HOUR",f1,macro,ns),makeHorizon("1 WEEK",fw,macro,ns),makeHorizon("1 MONTH",fm,macro,ns)];
     return NextResponse.json({quote,horizons,technicals:{m15:f5,m30:f30,h1:f1,w1:fw,m1:fm},news,marketSentiment:{score:ns,label:ns>=2?"BULLISH":ns<=-2?"BEARISH":"MIXED"},macro:{score:macro,label:macro>1?"SUPPORTIVE":macro<-1?"HEADWIND":"MIXED"},fundamentals,sources:{forexFactory:ff,capitolTrades:capitol},generatedAt:Date.now(),warnings:["Confidence is a confluence estimate, not a probability of profit.","Technical, news and macro signals are combined; the result is an analytical scenario, not a guaranteed outcome.","Data availability varies by symbol and source; some TradingView instruments do not have a matching Yahoo Finance feed."]});
   }catch(e){return NextResponse.json({error:e instanceof Error?e.message:"Market intelligence unavailable"},{status:502})}
