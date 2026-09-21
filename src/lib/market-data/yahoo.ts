@@ -23,7 +23,7 @@ const SYMBOL_ALIASES: Record<string, string> = {
 
 function normalizeYahooSymbol(input: string): string {
   const raw = input.trim().toUpperCase();
-  const [exchange, tickerPart] = raw.includes(":") ? raw.split(/:(.*)/s, 2) : ["", raw];
+  const [exchange, tickerPart] = raw.includes(":") ? raw.split(/:(.*)/, 2) : ["", raw];
   const symbol = tickerPart || raw;
 
   if (exchange === "OANDA" || exchange === "FX_IDC" || exchange === "FXCM") return symbol.endsWith("=X") ? symbol : symbol + "=X";
