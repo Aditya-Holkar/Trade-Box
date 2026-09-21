@@ -6,15 +6,15 @@ import XauusdDecisionPanel from "./xauusd-decision-panel";
 import { LanguageProvider, languages, useLanguage, type Language } from "./language-context";
 
 const pageText: Record<Language,{search:string;description:string;button:string;placeholder:string;language:string}> = {
-  en:{search:"MARKET GO TO CHART",description:"",button:"SEARCH",placeholder:"AAPL, EURUSD, BTCUSD, XAUUSD...",language:"LANGUAGE"},
-  hi:{search:"मार्केट सर्च",description:"TradingView चार्ट और इंटेलिजेंस पैनल को सिंक्रोनाइज़ रखने के लिए यहाँ सिंबल खोजें।",button:"खोजें",placeholder:"XAUUSD, EURUSD, AAPL...",language:"भाषा"},
-  mr:{search:"मार्केट शोध",description:"TradingView चार्ट आणि इंटेलिजन्स पॅनेल समक्रमित ठेवण्यासाठी येथे सिंबल शोधा.",button:"शोधा",placeholder:"XAUUSD, EURUSD, AAPL...",language:"भाषा"},
-  es:{search:"BÚSQUEDA DE MERCADO",description:"Busca un símbolo aquí para mantener sincronizados el gráfico de TradingView y el panel de inteligencia.",button:"BUSCAR",placeholder:"XAUUSD, EURUSD, AAPL...",language:"IDIOMA"},
-  fr:{search:"RECHERCHE DE MARCHÉ",description:"Recherchez un symbole ici pour synchroniser le graphique TradingView et le panneau d’intelligence.",button:"RECHERCHER",placeholder:"XAUUSD, EURUSD, AAPL...",language:"LANGUE"},
-  de:{search:"MARKTSUCHE",description:"Suchen Sie hier nach einem Symbol, um TradingView-Chart und Intelligence-Panel zu synchronisieren.",button:"SUCHEN",placeholder:"XAUUSD, EURUSD, AAPL...",language:"SPRACHE"},
-  ja:{search:"マーケット検索",description:"ここでシンボルを検索すると、TradingViewチャートとインテリジェンスパネルが同期します。",button:"検索",placeholder:"XAUUSD, EURUSD, AAPL...",language:"言語"},
-  zh:{search:"市场搜索",description:"在此搜索交易品种，以保持 TradingView 图表与智能面板同步。",button:"搜索",placeholder:"XAUUSD, EURUSD, AAPL...",language:"语言"},
-  ko:{search:"시장 검색",description:"여기에서 심볼을 검색하면 TradingView 차트와 인텔리전스 패널이 동기화됩니다.",button:"검색",placeholder:"XAUUSD, EURUSD, AAPL...",language:"언어"},
+  en:{search:"MARKET SYMBOL SEARCH",description:"Search a symbol here to load it directly into the TradingView chart. The chart also has its own full symbol search for stocks, forex pairs, crypto, indices and commodities.",button:"SEARCH",placeholder:"AAPL, EURUSD, BTCUSD, XAUUSD...",language:"LANGUAGE"},
+  hi:{search:"ट्रेडिंगव्यू सिंबल सर्च",description:"यहाँ सिंबल खोजें और उसे सीधे TradingView चार्ट में लोड करें। चार्ट का अपना पूरा सिंबल सर्च भी उपलब्ध है।",button:"खोजें",placeholder:"AAPL, EURUSD, BTCUSD, XAUUSD...",language:"भाषा"},
+  mr:{search:"ट्रेडिंगव्यू सिंबल शोध",description:"येथे सिंबल शोधा आणि तो थेट TradingView चार्टमध्ये लोड करा. चार्टमध्ये पूर्ण सिंबल शोध देखील उपलब्ध आहे.",button:"शोधा",placeholder:"AAPL, EURUSD, BTCUSD, XAUUSD...",language:"भाषा"},
+  es:{search:"BÚSQUEDA DE SÍMBOLOS TRADINGVIEW",description:"Busca un símbolo aquí para cargarlo directamente en el gráfico de TradingView. El gráfico también incluye su propio buscador completo.",button:"BUSCAR",placeholder:"AAPL, EURUSD, BTCUSD, XAUUSD...",language:"IDIOMA"},
+  fr:{search:"RECHERCHE DE SYMBOLES TRADINGVIEW",description:"Recherchez un symbole ici pour le charger directement dans le graphique TradingView. Le graphique dispose aussi de sa propre recherche complète.",button:"RECHERCHER",placeholder:"AAPL, EURUSD, BTCUSD, XAUUSD...",language:"LANGUE"},
+  de:{search:"TRADINGVIEW-SYMBOLSUCHE",description:"Suchen Sie hier ein Symbol und laden Sie es direkt in den TradingView-Chart. Der Chart verfügt auch über eine vollständige eigene Symbols­uche.",button:"SUCHEN",placeholder:"AAPL, EURUSD, BTCUSD, XAUUSD...",language:"SPRACHE"},
+  ja:{search:"TRADINGVIEW シンボル検索",description:"ここでシンボルを検索すると、TradingViewチャートに直接読み込まれます。チャート内にも完全なシンボル検索があります。",button:"検索",placeholder:"AAPL, EURUSD, BTCUSD, XAUUSD...",language:"言語"},
+  zh:{search:"TRADINGVIEW 品种搜索",description:"在这里搜索品种并直接加载到 TradingView 图表。图表本身也提供完整的品种搜索。",button:"搜索",placeholder:"AAPL, EURUSD, BTCUSD, XAUUSD...",language:"语言"},
+  ko:{search:"TRADINGVIEW 심볼 검색",description:"여기에서 심볼을 검색하면 TradingView 차트에 직접 로드됩니다. 차트 자체에도 전체 심볼 검색 기능이 있습니다.",button:"검색",placeholder:"AAPL, EURUSD, BTCUSD, XAUUSD...",language:"언어"},
   ar:{search:"بحث السوق",description:"ابحث عن رمز هنا للحفاظ على مزامنة مخطط TradingView ولوحة المعلومات.",button:"بحث",placeholder:"XAUUSD, EURUSD, AAPL...",language:"اللغة"}
 };
 
