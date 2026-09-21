@@ -1,21 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import TradingViewXauusdChart from "./tradingview-xauusd-chart";
 import XauusdDecisionPanel from "./xauusd-decision-panel";
 import { LanguageProvider, languages, useLanguage, type Language } from "./language-context";
 
 const pageText: Record<Language,{search:string;description:string;button:string;placeholder:string;language:string}> = {
-  en:{search:"MARKET SYMBOL SEARCH",description:"Search a symbol here to load it directly into the TradingView chart. The chart also has its own full symbol search for stocks, forex pairs, crypto, indices and commodities.",button:"SEARCH",placeholder:"AAPL, EURUSD, BTCUSD, XAUUSD...",language:"LANGUAGE"},
-  hi:{search:"ट्रेडिंगव्यू सिंबल सर्च",description:"यहाँ सिंबल खोजें और उसे सीधे TradingView चार्ट में लोड करें। चार्ट का अपना पूरा सिंबल सर्च भी उपलब्ध है।",button:"खोजें",placeholder:"AAPL, EURUSD, BTCUSD, XAUUSD...",language:"भाषा"},
-  mr:{search:"ट्रेडिंगव्यू सिंबल शोध",description:"येथे सिंबल शोधा आणि तो थेट TradingView चार्टमध्ये लोड करा. चार्टमध्ये पूर्ण सिंबल शोध देखील उपलब्ध आहे.",button:"शोधा",placeholder:"AAPL, EURUSD, BTCUSD, XAUUSD...",language:"भाषा"},
-  es:{search:"BÚSQUEDA DE SÍMBOLOS TRADINGVIEW",description:"Busca un símbolo aquí para cargarlo directamente en el gráfico de TradingView. El gráfico también incluye su propio buscador completo.",button:"BUSCAR",placeholder:"AAPL, EURUSD, BTCUSD, XAUUSD...",language:"IDIOMA"},
-  fr:{search:"RECHERCHE DE SYMBOLES TRADINGVIEW",description:"Recherchez un symbole ici pour le charger directement dans le graphique TradingView. Le graphique dispose aussi de sa propre recherche complète.",button:"RECHERCHER",placeholder:"AAPL, EURUSD, BTCUSD, XAUUSD...",language:"LANGUE"},
-  de:{search:"TRADINGVIEW-SYMBOLSUCHE",description:"Suchen Sie hier ein Symbol und laden Sie es direkt in den TradingView-Chart. Der Chart verfügt auch über eine vollständige eigene Symbols­uche.",button:"SUCHEN",placeholder:"AAPL, EURUSD, BTCUSD, XAUUSD...",language:"SPRACHE"},
-  ja:{search:"TRADINGVIEW シンボル検索",description:"ここでシンボルを検索すると、TradingViewチャートに直接読み込まれます。チャート内にも完全なシンボル検索があります。",button:"検索",placeholder:"AAPL, EURUSD, BTCUSD, XAUUSD...",language:"言語"},
-  zh:{search:"TRADINGVIEW 品种搜索",description:"在这里搜索品种并直接加载到 TradingView 图表。图表本身也提供完整的品种搜索。",button:"搜索",placeholder:"AAPL, EURUSD, BTCUSD, XAUUSD...",language:"语言"},
-  ko:{search:"TRADINGVIEW 심볼 검색",description:"여기에서 심볼을 검색하면 TradingView 차트에 직접 로드됩니다. 차트 자체에도 전체 심볼 검색 기능이 있습니다.",button:"검색",placeholder:"AAPL, EURUSD, BTCUSD, XAUUSD...",language:"언어"},
-  ar:{search:"بحث السوق",description:"ابحث عن رمز هنا للحفاظ على مزامنة مخطط TradingView ولوحة المعلومات.",button:"بحث",placeholder:"XAUUSD, EURUSD, AAPL...",language:"اللغة"}
+  en:{search:"MARKET SYMBOL SEARCH",description:"Search a market symbol here to load its analysis. Stocks, forex pairs, crypto, indices and commodities are supported when market data is available.",button:"SEARCH",placeholder:"AAPL, VEDL, EURUSD, BTCUSD, XAUUSD...",language:"LANGUAGE"},
+  hi:{search:"मार्केट सिंबल सर्च",description:"यहाँ मार्केट सिंबल खोजें और उसका विश्लेषण लोड करें। उपलब्ध मार्केट डेटा के अनुसार स्टॉक, फॉरेक्स, क्रिप्टो, इंडेक्स और कमोडिटी समर्थित हैं।",button:"खोजें",placeholder:"AAPL, VEDL, EURUSD, BTCUSD, XAUUSD...",language:"भाषा"},
+  mr:{search:"मार्केट सिंबल शोध",description:"येथे मार्केट सिंबल शोधा आणि त्याचे विश्लेषण लोड करा. उपलब्ध मार्केट डेटानुसार स्टॉक, फॉरेक्स, क्रिप्टो, इंडेक्स आणि कमोडिटी समर्थित आहेत.",button:"शोधा",placeholder:"AAPL, VEDL, EURUSD, BTCUSD, XAUUSD...",language:"भाषा"},
+  es:{search:"BÚSQUEDA DE SÍMBOLOS",description:"Busca un símbolo de mercado aquí para cargar su análisis. Se admiten acciones, forex, cripto, índices y materias primas cuando hay datos disponibles.",button:"BUSCAR",placeholder:"AAPL, VEDL, EURUSD, BTCUSD, XAUUSD...",language:"IDIOMA"},
+  fr:{search:"RECHERCHE DE SYMBOLES",description:"Recherchez un symbole de marché pour charger son analyse. Actions, forex, crypto, indices et matières premières sont pris en charge lorsque les données sont disponibles.",button:"RECHERCHER",placeholder:"AAPL, VEDL, EURUSD, BTCUSD, XAUUSD...",language:"LANGUE"},
+  de:{search:"MARKT-SYMBOLSUCHE",description:"Suchen Sie ein Marktsymbol, um dessen Analyse zu laden. Aktien, Forex, Krypto, Indizes und Rohstoffe werden unterstützt, wenn Marktdaten verfügbar sind.",button:"SUCHEN",placeholder:"AAPL, VEDL, EURUSD, BTCUSD, XAUUSD...",language:"SPRACHE"},
+  ja:{search:"マーケットシンボル検索",description:"マーケットシンボルを検索して分析を読み込みます。データが利用可能な株式、FX、暗号資産、指数、商品に対応しています。",button:"検索",placeholder:"AAPL, VEDL, EURUSD, BTCUSD, XAUUSD...",language:"言語"},
+  zh:{search:"市场品种搜索",description:"搜索市场品种并加载分析。只要有市场数据，即可支持股票、外汇、加密资产、指数和商品。",button:"搜索",placeholder:"AAPL, VEDL, EURUSD, BTCUSD, XAUUSD...",language:"语言"},
+  ko:{search:"시장 심볼 검색",description:"시장 심볼을 검색해 분석을 불러옵니다. 시장 데이터가 제공되는 주식, 외환, 암호화폐, 지수 및 상품을 지원합니다.",button:"검색",placeholder:"AAPL, VEDL, EURUSD, BTCUSD, XAUUSD...",language:"언어"},
+  ar:{search:"بحث رمز السوق",description:"ابحث عن رمز سوق لتحميل تحليله. يتم دعم الأسهم والفوركس والعملات المشفرة والمؤشرات والسلع عند توفر بيانات السوق.",button:"بحث",placeholder:"AAPL, VEDL, EURUSD, BTCUSD, XAUUSD...",language:"اللغة"}
 };
 
 function HomeContent() {
@@ -23,7 +22,22 @@ function HomeContent() {
   const [searchInput, setSearchInput] = useState("XAUUSD");
   const {language,setLanguage}=useLanguage();
   const t=pageText[language];
-  const normalizeSymbol=(input:string)=>{const raw=input.trim().toUpperCase();if(!raw)return "OANDA:XAUUSD";if(raw.includes(":"))return raw;const aliases:Record<string,string>={APPLE:"AAPL",MICROSOFT:"MSFT",TESLA:"TSLA",NVIDIA:"NVDA",GOOGLE:"GOOGL",AMAZON:"AMZN",META:"META"};const resolved=aliases[raw]??raw;const fx=["EURUSD","GBPUSD","USDJPY","USDCHF","AUDUSD","USDCAD","NZDUSD","EURGBP","EURJPY","GBPJPY","AUDJPY"];if(fx.includes(resolved))return "OANDA:"+resolved;if(["XAUUSD","XAGUSD"].includes(resolved))return "OANDA:"+resolved;if(["BTCUSD","ETHUSD"].includes(resolved))return "COINBASE:"+resolved;return "NASDAQ:"+resolved;};
+  const normalizeSymbol=(input:string)=>{
+    const raw=input.trim().toUpperCase();
+    if(!raw)return "OANDA:XAUUSD";
+    if(raw.includes(":"))return raw;
+    const aliases:Record<string,string>={
+      APPLE:"AAPL",MICROSOFT:"MSFT",TESLA:"TSLA",NVIDIA:"NVDA",GOOGLE:"GOOGL",AMAZON:"AMZN",META:"META",
+      VEDL:"NSE:VEDL"
+    };
+    const resolved=aliases[raw]??raw;
+    const fx=["EURUSD","GBPUSD","USDJPY","USDCHF","AUDUSD","USDCAD","NZDUSD","EURGBP","EURJPY","GBPJPY","AUDJPY"];
+    if(fx.includes(resolved))return "OANDA:"+resolved;
+    if(["XAUUSD","XAGUSD"].includes(resolved))return "OANDA:"+resolved;
+    if(["BTCUSD","ETHUSD"].includes(resolved))return "COINBASE:"+resolved;
+    if(resolved.startsWith("NSE:"))return resolved;
+    return "NASDAQ:"+resolved;
+  };
   return (
     <main dir={language==="ar"?"rtl":"ltr"} className="min-h-screen bg-[#070b10] p-3 md:p-5">
       <div className="mx-auto max-w-[1700px]">
@@ -42,7 +56,6 @@ function HomeContent() {
             </div>
           </div>
         </div>
-        <TradingViewXauusdChart symbol={symbol} />
         <XauusdDecisionPanel symbol={symbol} />
       </div>
     </main>
