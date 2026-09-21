@@ -22,7 +22,8 @@ function HomeContent() {
   const [symbol, setSymbol] = useState("XAUUSD");
   const {language,setLanguage}=useLanguage();
   const t=pageText[language];
-  const normalizeSymbol=(input:string)=>{const raw=input.trim().toUpperCase();if(!raw)return "XAUUSD";if(raw.includes(":"))return raw;const fx=["EURUSD","GBPUSD","USDJPY","USDCHF","AUDUSD","USDCAD","NZDUSD","EURGBP","EURJPY","GBPJPY","AUDJPY"];if(fx.includes(raw))return "OANDA:"+raw;if(["XAUUSD","XAGUSD"].includes(raw))return "OANDA:"+raw;if(["BTCUSD","ETHUSD"].includes(raw))return "COINBASE:"+raw;return "NASDAQ:"+raw;};
+  const normalizeSymbol=(input:string)=>{const raw=input.trim().toUpperCase();if(!raw)return "OANDA:XAUUSD";if(raw.includes(":"))return raw;const aliases:Record<string,string>={APPLE:"AAPL",MICROSOFT:"MSFT",TESLA:"TSLA",NVIDIA:"NVDA",GOOGLE:"GOOGL",AMAZON:"AMZN",META:"META"};const resolved=aliases[raw]??raw;const fx=["EURUSD","GBPUSD","USDJPY","USDCHF","AUDUSD","USDCAD","NZDUSD","EURGBP","EURJPY","GBPJPY","AUDJPY"];if(fx.includes(resolved))return "OANDA:"+resolved;if(["XAUUSD","XAGUSD"].includes(resolved))return "OANDA:"+resolved;if(["BTCUSD","ETHUSD"].includes(resolved))return "COINBASE:"+resolved;return "NASDAQ:"+resolved;};
+  const isXauSymbol=symbol==="OANDA:XAUUSD"||symbol==="XAUUSD";
   return (
     <main dir={language==="ar"?"rtl":"ltr"} className="min-h-screen bg-[#070b10] p-3 md:p-5">
       <div className="mx-auto max-w-[1700px]">
@@ -42,7 +43,7 @@ function HomeContent() {
           </div>
         </div>
         <TradingViewXauusdChart symbol={symbol} />
-        {symbol==="XAUUSD"||symbol==="OANDA:XAUUSD" ? <XauusdDecisionPanel symbol="XAUUSD" /> : <div className="mt-4 rounded border border-[#1b2532] bg-[#0c1118] p-4 text-xs text-[#7f8da1]">TradingView chart mode is active for <b className="text-[#e5edf5]">{symbol}</b>. Use the chart&apos;s built-in symbol search to browse stocks, forex pairs, crypto, indices, commodities and other available instruments.</div>}
+        {isXauSymbol ? <XauusdDecisionPanel symbol="XAUUSD" /> : <div className="mt-4 rounded border border-[#1b2532] bg-[#0c1118] p-4 text-xs text-[#7f8da1]">TradingView chart mode is active for <b className="text-[#e5edf5]">{symbol}</b>. Use the chart&apos;s built-in symbol search to browse stocks, forex pairs, crypto, indices, commodities and other available instruments.</div>}
       </div>
     </main>
   );
