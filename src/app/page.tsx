@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useRef, useState } from "react";
 import XauusdDecisionPanel from "./xauusd-decision-panel";
 import { LanguageProvider, languages, useLanguage, type Language } from "./language-context";
