@@ -1,6 +1,6 @@
 import type { Candle, MarketDataProvider, Quote } from "./types";
 
-const BASE_URL = "https://query1.finance.yahoo.com";
+const BASE_URLS = ["https://query1.finance.yahoo.com", "https://query2.finance.yahoo.com"];
 
 const SYMBOL_ALIASES: Record<string, string> = {
   XAUUSD: "GC=F",
@@ -104,7 +104,7 @@ export const yahooProvider: MarketDataProvider = {
   async getQuote(symbol: string): Promise<Quote> {
     const requestedSymbol = symbol.trim().toUpperCase();
     const yahooSymbol = normalizeYahooSymbol(requestedSymbol);
-    const result = await fetchChart(yahooSymbol, "1d", "1m");
+    const result = await fetchChart(yahooSymbol, "5d", "1d");
     const meta = result.meta ?? {};
     const price = meta.regularMarketPrice;
     if (typeof price !== "number") throw new Error(`No quote available for ${requestedSymbol}`);
