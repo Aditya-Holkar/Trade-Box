@@ -23,7 +23,9 @@ const fmt=(n:number|undefined)=>typeof n==="number"&&Number.isFinite(n)?n.toFixe
 export default function XauusdDecisionPanel({ symbol }: { symbol: string }){
   const [report,setReport]=useState<Report|null>(null);
   const [loading,setLoading]=useState(true);
-  const [error,setError]=useState<string|null>(null);\n  const [liveUpdatedAt,setLiveUpdatedAt]=useState<number|null>(null);\n  const requestRef=useRef(0);
+  const [error,setError]=useState<string|null>(null);
+  const [liveUpdatedAt,setLiveUpdatedAt]=useState<number|null>(null);
+  const requestRef=useRef(0);
 
   async function loadAnalysis(){
     const normalized=symbol.trim().toUpperCase()||"XAUUSD";
