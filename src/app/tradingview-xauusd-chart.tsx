@@ -46,6 +46,7 @@ export default function TradingViewXauusdChart({ symbol }: { symbol: string }) {
       theme: "dark",
       style: "1",
       locale: "en",
+      symbol_search_request_delay: 250,
       allow_symbol_change: true,
       hide_top_toolbar: false,
       hide_side_toolbar: false,
