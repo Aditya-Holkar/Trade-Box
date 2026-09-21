@@ -88,6 +88,11 @@ function HomeContent() {
               <form className="relative flex w-full max-w-md gap-2" onSubmit={(event)=>{event.preventDefault();const value=new FormData(event.currentTarget).get("symbol");if(typeof value==="string"&&value.trim()){selectSymbol(normalizeSymbol(value));}}} ref={searchBoxRef}>
                 <input name="symbol" aria-label="Search market symbol" value={searchInput} autoComplete="off" onFocus={()=>setShowSuggestions(true)} onChange={e=>{setSearchInput(e.target.value);setShowSuggestions(true)}} placeholder={t.placeholder} className="min-w-0 flex-1 rounded border border-[#263444] bg-[#080d13] px-3 py-2 text-sm font-mono text-[#e5edf5] outline-none placeholder:text-[#536174] focus:border-[#5eead4]" />
                 <button type="submit" className="rounded border border-[#23413d] bg-[#0c1516] px-4 py-2 text-[10px] font-bold tracking-wider text-[#5eead4] hover:border-[#5eead4]">{t.button}</button>
+                {showSuggestions && suggestions.length>0 && <div className="absolute left-0 right-[72px] top-full z-50 mt-1 max-h-80 overflow-auto rounded border border-[#263444] bg-[#0a1017] shadow-2xl">
+                  {suggestions.map(item=><button type="button" key={item.symbol+"-"+item.exchange} onClick={()=>selectSymbol(item.symbol)} className="flex w-full items-center justify-between gap-3 border-b border-[#182330] px-3 py-2 text-left hover:bg-[#111b25]">
+                    <span className="min-w-0"><span className="block truncate text-xs font-bold font-mono text-[#e5edf5]">{item.symbol}</span><span className="block truncate text-[10px] text-[#7f8da1]">{item.name}</span></span><span className="shrink-0 text-[9px] font-bold uppercase tracking-wider text-[#5eead4]">{item.exchange} · {item.type}</span>
+                  </button>)}
+                </div>}
               </form>
             </div>
           </div>
