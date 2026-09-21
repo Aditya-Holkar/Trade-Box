@@ -74,7 +74,7 @@ export default function XauusdDecisionPanel({ symbol }: { symbol: string }){
   useEffect(()=>{
     void loadAnalysis();
     void loadLive();
-    const liveTimer=window.setInterval(()=>void loadLive(),2000);
+    const liveTimer=window.setInterval(()=>void loadLive(),15000);
     const analysisTimer=window.setInterval(()=>void loadAnalysis(),7000);
     return ()=>{window.clearInterval(liveTimer);window.clearInterval(analysisTimer);};
   },[symbol]);
@@ -96,7 +96,7 @@ export default function XauusdDecisionPanel({ symbol }: { symbol: string }){
         <div className="rounded border border-[#23413d] bg-[#0c1516] p-4">
           <div className="text-[10px] tracking-widest text-[#7f8da1]">LIVE MARKET</div>
           <div className="mt-2 font-mono text-3xl font-black">{fmt(report.quote.price)}</div>
-          <div className="mt-2 text-xs text-[#7f8da1]">Bid {fmt(report.quote.bid)} · Ask {fmt(report.quote.ask)}</div><div className="mt-1 text-[10px] text-[#5eead4]">LIVE SPOT · price refresh 2s · analysis refresh 7s · {symbol.trim().toUpperCase()||"XAUUSD"}</div><div className="mt-1 text-[10px] text-[#617086]">Feed {report.quote.provider??"live"} · updated {liveUpdatedAt?new Date(liveUpdatedAt).toLocaleTimeString():"—"}</div>
+          <div className="mt-2 text-xs text-[#7f8da1]">Bid {fmt(report.quote.bid)} · Ask {fmt(report.quote.ask)}</div><div className="mt-1 text-[10px] text-[#5eead4]">LIVE SPOT · price refresh 15s · analysis refresh 7s · {symbol.trim().toUpperCase()||"XAUUSD"}</div><div className="mt-1 text-[10px] text-[#617086]">Feed {report.quote.provider??"live"} · updated {liveUpdatedAt?new Date(liveUpdatedAt).toLocaleTimeString():"—"}</div>
         </div>
         <div className="rounded border border-[#1b2532] bg-[#101722] p-4"><div className="text-[10px] tracking-widest text-[#7f8da1]">MARKET SENTIMENT</div><div className="mt-2 text-xl font-black">{report.marketSentiment.label}</div><div className="mt-1 text-xs text-[#7f8da1]">News-flow composite: {report.marketSentiment.score > 0 ? "+" : ""}{report.marketSentiment.score}</div></div>
         <div className="rounded border border-[#1b2532] bg-[#101722] p-4"><div className="text-[10px] tracking-widest text-[#7f8da1]">MACRO / POLICY</div><div className="mt-2 text-xl font-black">{report.macro.label}</div><div className="mt-1 text-xs text-[#7f8da1]">Forex Factory + policy context</div></div>
@@ -143,7 +143,7 @@ export default function XauusdDecisionPanel({ symbol }: { symbol: string }){
         <div className="text-[10px] tracking-widest text-[#f5c16c]">ACCURACY / DATA QUALITY GATES</div>
         <div className="mt-2 grid gap-2 text-xs text-[#9aa8ba] md:grid-cols-3">{report.warnings.map((w,i)=><div key={i}>• {w}</div>)}</div>
       </div>
-      <div className="text-[10px] text-[#617086]">Analysis updated {new Date(report.generatedAt).toLocaleTimeString()} · Live price is refreshed independently every 2s · Research/simulation only · The engine does not place orders.</div>
+      <div className="text-[10px] text-[#617086]">Analysis updated {new Date(report.generatedAt).toLocaleTimeString()} · Live price is refreshed independently every 15s · Research/simulation only · The engine does not place orders.</div>
     </div>}
   </section>;
 }
