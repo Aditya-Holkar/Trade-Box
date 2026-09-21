@@ -13,7 +13,7 @@ type Report = {
   news: {title:string;link:string;publishedAt:string;sentiment:string}[];
   marketSentiment: {score:number;label:string};
   macro: {score:number;label:string};
-  fundamentals: {dollarIndex:{value:number;changePct:number}|null;us10y:{value:number;changePct:number}|null;oil:{value:number;changePct:number}|null;centralBankContext:string;policyFlowContext:string};
+  fundamentals: {dollarIndex:{value:number;changePct:number}|null;us10y:{value:number;changePct:number}|null;oil:{value:number;changePct:number}|null;centralBankContext:string;policyFlowContext:string;drivers:{label:string;value:{value:number;changePct:number}|null}[]};
   sources: {forexFactory:{available:boolean;headline:string;sentiment:string;url:string};capitolTrades:{available:boolean;headline:string;sentiment:string;url:string}};
   generatedAt: number;
   warnings: string[];
@@ -131,12 +131,10 @@ export default function MarketDecisionPanel({ symbol }: { symbol: string }){
       <div className="grid gap-3 lg:grid-cols-3">
         <div className="rounded border border-[#1b2532] bg-[#101722] p-4">
           <div className="text-[10px] tracking-widest text-[#7f8da1]">{t.fundamentals}</div>
-          <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
-            <div>DXY<br/><b>{report.fundamentals.dollarIndex?report.fundamentals.dollarIndex.value.toFixed(2):"—"}</b><div className="text-[#617086]">{report.fundamentals.dollarIndex?report.fundamentals.dollarIndex.changePct.toFixed(2)+"% 5D":"—"}</div></div>
-            <div>US10Y<br/><b>{report.fundamentals.us10y?report.fundamentals.us10y.value.toFixed(2):"—"}</b><div className="text-[#617086]">{report.fundamentals.us10y?report.fundamentals.us10y.changePct.toFixed(2)+"% 5D":"—"}</div></div>
-            <div>OIL<br/><b>{report.fundamentals.oil?report.fundamentals.oil.value.toFixed(2):"—"}</b><div className="text-[#617086]">{report.fundamentals.oil?report.fundamentals.oil.changePct.toFixed(2)+"% 5D":"—"}</div></div>
+          <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+            {report.fundamentals.drivers.map((d)=> <div key={d.label} className="rounded border border-[#1b2532] p-2"><div className="text-[#9aa8ba]">{d.label}</div><b>{d.value?d.value.value.toFixed(2):"—"}</b><div className="text-[#617086]">{d.value?d.value.changePct.toFixed(2)+"% 5D":"—"}</div></div>)}
           </div>
-          <div className="mt-3 text-[10px] leading-4 text-[#617086]">Macro context uses USD, rates, energy, central-bank context and policy flow alongside symbol-specific price action and news.</div>
+          <div className="mt-3 text-[10px] leading-4 text-[#617086]">Drivers are selected for {symbol.trim().toUpperCase()||"XAUUSD"} using its asset class plus relevant market, rates, currency and volatility context.</div>
         </div>
         <div className="rounded border border-[#1b2532] bg-[#101722] p-4">
           <div className="text-[10px] tracking-widest text-[#7f8da1]">{t.technical}</div>
