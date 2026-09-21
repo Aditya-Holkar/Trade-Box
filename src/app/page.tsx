@@ -22,7 +22,7 @@ function HomeContent() {
   const [searchInput, setSearchInput] = useState("XAUUSD");
   const [suggestions, setSuggestions] = useState<Array<{symbol:string;name:string;exchange:string;type:string}>>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const searchBoxRef = useRef<HTMLDivElement>(null);
+  const searchBoxRef = useRef<HTMLFormElement>(null);
   useEffect(()=>{ const q=searchInput.trim(); if(!q){setSuggestions([]);return;} const timer=setTimeout(async()=>{try{const r=await fetch(`/api/symbols?q=${encodeURIComponent(q)}`);const data=await r.json();setSuggestions(data.results??[]);}catch{setSuggestions([]);}},220); return()=>clearTimeout(timer); },[searchInput]);
   useEffect(()=>{ const close=(e:MouseEvent)=>{if(searchBoxRef.current&&!searchBoxRef.current.contains(e.target as Node))setShowSuggestions(false)}; document.addEventListener("mousedown",close); return()=>document.removeEventListener("mousedown",close); },[]);
   const selectSymbol=(value:string)=>{setSearchInput(value);setSymbol(value);setShowSuggestions(false);};
