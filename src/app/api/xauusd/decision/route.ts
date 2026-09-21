@@ -59,6 +59,8 @@ function makeHorizon(h:string,f:any,macro:number,news:number):Horizon{
   if(bias==="SELL")return {horizon:h,bias,score,confidence,trigger:"Confirm rejection below "+f.support.toFixed(2)+" or a bearish structure break; avoid entries immediately before high-impact USD news.",entry:p.toFixed(2)+" ± "+(a*0.25).toFixed(2),stop:(p+a).toFixed(2),targets:(p-a*1.2).toFixed(2)+" / "+(p-a*2).toFixed(2),rationale:f.details.slice(0,4)};
   return {horizon:h,bias,score,confidence,trigger:"WAIT for a confirmed break/retest with momentum alignment and a clean macro/news window.",entry:"No entry",stop:"—",targets:"—",rationale:f.details.slice(0,4)};
 }
+const NSE_SYMBOLS = new Set(["VEDL","RELIANCE","TCS","INFY","HDFCBANK","ICICIBANK","SBIN","ITC","LT","AXISBANK","KOTAKBANK","ADANIENT","ADANIPORTS","BHARTIARTL","MARUTI","SUNPHARMA","TATAMOTORS","TATASTEEL","HINDUNILVR","HINDALCO","JSWSTEEL","WIPRO","NTPC","POWERGRID","ONGC","COALINDIA","BAJFINANCE","BAJAJFINSV","M&M","TECHM","INDUSINDBK","DRREDDY","CIPLA","EICHERMOT","GRASIM","DIVISLAB","APOLLOHOSP","TITAN","ULTRACEMCO","BEL","HAL","TRENT","ZOMATO","IRFC","RVNL","IREDA","BHEL","IOC","BPCL","HINDZINC","VEDPOWER","VAML","VOGL","VISL"]);
+
 function normalizeRequestedSymbol(input: string) {
   const raw = input.trim().toUpperCase();
   if (!raw) return "XAUUSD";
@@ -70,6 +72,7 @@ function normalizeRequestedSymbol(input: string) {
   if (exchange === "TVC") return ({SPX:"^GSPC",NDX:"^NDX",VIX:"^VIX"} as Record<string,string>)[ticker] ?? ticker;
   if (exchange === "DJ") return ticker === "DJI" ? "^DJI" : ticker;
   if (ticker === "BRK.B") return "BRK-B";
+  if (!exchange && NSE_SYMBOLS.has(ticker)) return ticker + ".NS";
   return ticker;
 }
 
