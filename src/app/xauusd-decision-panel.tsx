@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 type Horizon = {
   horizon: string; bias: "BUY" | "SELL" | "WAIT"; score: number; confidence: number;
   trigger: string; entry: string; stop: string; targets: string; rationale: string[];
 };
 type Report = {
-  quote: { price: number; bid?: number; ask?: number };
+  quote: { price: number; bid?: number; ask?: number; timestamp?: number; provider?: string };
   horizons: Horizon[];
   technicals: Record<string, {score:number;price:number;atr:number;rsi:number;ema20:number;ema50:number;support:number;resistance:number;details:string[]}>;
   news: {title:string;link:string;publishedAt:string;sentiment:string}[];
@@ -23,15 +23,42 @@ const fmt=(n:number|undefined)=>typeof n==="number"&&Number.isFinite(n)?n.toFixe
 export default function XauusdDecisionPanel({ symbol }: { symbol: string }){
   const [report,setReport]=useState<Report|null>(null);
   const [loading,setLoading]=useState(true);
-  const [error,setError]=useState<string|null>(null);
+  const [error,setError]=useState<string|null>(null);\n  const [liveUpdatedAt,setLiveUpdatedAt]=useState<number|null>(null);\n  const requestRef=useRef(0);
 
-  async function load(){
+  async function loadAnalysis(){
+    const normalized=symbol.trim().toUpperCase()||"XAUUSD";
+    const id=++requestRef.current;
     setLoading(true);setError(null);
-    try{const normalized=symbol.trim().toUpperCase()||"XAUUSD"; const r=await fetch("/api/xauusd/decision?symbol="+encodeURIComponent(normalized),{cache:"no-store"});const b=await r.json();if(!r.ok)throw new Error(b.error??"XAUUSD intelligence unavailable");setReport(b);}
-    catch(e){setError(e instanceof Error?e.message:"XAUUSD intelligence unavailable");}
-    finally{setLoading(false);}
+    try{
+      const r=await fetch("/api/xauusd/decision?symbol="+encodeURIComponent(normalized),{cache:"no-store"});
+      const b=await r.json();
+      if(!r.ok)throw new Error(b.error??"XAUUSD intelligence unavailable");
+      if(id===requestRef.current)setReport(b);
+    }catch(e){
+      if(id===requestRef.current)setError(e instanceof Error?e.message:"XAUUSD intelligence unavailable");
+    }finally{
+      if(id===requestRef.current)setLoading(false);
+    }
   }
-  useEffect(()=>{ void load(); const timer=window.setInterval(()=>void load(),7000); return ()=>window.clearInterval(timer); },[symbol]);
+  async function loadLive(){
+    const normalized=symbol.trim().toUpperCase()||"XAUUSD";
+    try{
+      const r=await fetch("/api/xauusd/live?symbol="+encodeURIComponent(normalized),{cache:"no-store"});
+      const b=await r.json();
+      if(!r.ok)throw new Error(b.error??"Live market unavailable");
+      setReport(prev=>prev?{...prev,quote:b.quote}:prev);
+      setLiveUpdatedAt(b.generatedAt);
+    }catch(e){
+      if(!report)setError(e instanceof Error?e.message:"Live market unavailable");
+    }
+  }
+  useEffect(()=>{
+    void loadAnalysis();
+    void loadLive();
+    const liveTimer=window.setInterval(()=>void loadLive(),2000);
+    const analysisTimer=window.setInterval(()=>void loadAnalysis(),7000);
+    return ()=>{window.clearInterval(liveTimer);window.clearInterval(analysisTimer);};
+  },[symbol]);
 
   return <section className="mt-4 overflow-hidden rounded border border-[#1b2532] bg-[#0b1017]">
     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#1b2532] px-4 py-4">
@@ -39,7 +66,7 @@ export default function XauusdDecisionPanel({ symbol }: { symbol: string }){
         <div className="text-xs font-bold tracking-[.18em] text-[#5eead4]">{symbol.trim().toUpperCase()||"XAUUSD"} · MULTI-HORIZON TRADE INTELLIGENCE</div>
         <div className="mt-1 text-lg font-semibold">News + sentiment + technicals + macro + policy context</div>
       </div>
-      <button onClick={()=>void load()} disabled={loading} className="rounded border border-[#263444] px-3 py-2 text-[10px] font-bold tracking-wider text-[#9aa8ba] hover:border-[#5eead4] hover:text-[#5eead4]">{loading?"ANALYZING…":"REFRESH"}</button>
+      <button onClick={()=>void loadAnalysis()} disabled={loading} className="rounded border border-[#263444] px-3 py-2 text-[10px] font-bold tracking-wider text-[#9aa8ba] hover:border-[#5eead4] hover:text-[#5eead4]">{loading?"ANALYZING…":"REFRESH"}</button>
     </div>
 
     {error&&<div className="m-4 rounded border border-[#5b2932] bg-[#1a1014] p-3 text-xs text-[#f08a9a]">{error}</div>}
@@ -50,7 +77,7 @@ export default function XauusdDecisionPanel({ symbol }: { symbol: string }){
         <div className="rounded border border-[#23413d] bg-[#0c1516] p-4">
           <div className="text-[10px] tracking-widest text-[#7f8da1]">LIVE MARKET</div>
           <div className="mt-2 font-mono text-3xl font-black">{fmt(report.quote.price)}</div>
-          <div className="mt-2 text-xs text-[#7f8da1]">Bid {fmt(report.quote.bid)} · Ask {fmt(report.quote.ask)}</div><div className="mt-1 text-[10px] text-[#5eead4]">LIVE SPOT · auto-refresh 7s · {symbol.trim().toUpperCase()||"XAUUSD"}</div>
+          <div className="mt-2 text-xs text-[#7f8da1]">Bid {fmt(report.quote.bid)} · Ask {fmt(report.quote.ask)}</div><div className="mt-1 text-[10px] text-[#5eead4]">LIVE SPOT · price refresh 2s · analysis refresh 7s · {symbol.trim().toUpperCase()||"XAUUSD"}</div><div className="mt-1 text-[10px] text-[#617086]">Feed {report.quote.provider??"live"} · updated {liveUpdatedAt?new Date(liveUpdatedAt).toLocaleTimeString():"—"}</div>
         </div>
         <div className="rounded border border-[#1b2532] bg-[#101722] p-4"><div className="text-[10px] tracking-widest text-[#7f8da1]">MARKET SENTIMENT</div><div className="mt-2 text-xl font-black">{report.marketSentiment.label}</div><div className="mt-1 text-xs text-[#7f8da1]">News-flow composite: {report.marketSentiment.score > 0 ? "+" : ""}{report.marketSentiment.score}</div></div>
         <div className="rounded border border-[#1b2532] bg-[#101722] p-4"><div className="text-[10px] tracking-widest text-[#7f8da1]">MACRO / POLICY</div><div className="mt-2 text-xl font-black">{report.macro.label}</div><div className="mt-1 text-xs text-[#7f8da1]">Forex Factory + policy context</div></div>
@@ -97,7 +124,7 @@ export default function XauusdDecisionPanel({ symbol }: { symbol: string }){
         <div className="text-[10px] tracking-widest text-[#f5c16c]">ACCURACY / DATA QUALITY GATES</div>
         <div className="mt-2 grid gap-2 text-xs text-[#9aa8ba] md:grid-cols-3">{report.warnings.map((w,i)=><div key={i}>• {w}</div>)}</div>
       </div>
-      <div className="text-[10px] text-[#617086]">Updated {new Date(report.generatedAt).toLocaleTimeString()} · Research/simulation only · The engine does not place orders.</div>
+      <div className="text-[10px] text-[#617086]">Analysis updated {new Date(report.generatedAt).toLocaleTimeString()} · Live price is refreshed independently every 2s · Research/simulation only · The engine does not place orders.</div>
     </div>}
   </section>;
 }
