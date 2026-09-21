@@ -10,7 +10,7 @@ const TV_ALIASES: Record<string, string> = {
   AAPL: "NASDAQ:AAPL", MSFT: "NASDAQ:MSFT", NVDA: "NASDAQ:NVDA", AMZN: "NASDAQ:AMZN", GOOGL: "NASDAQ:GOOGL", TSLA: "NASDAQ:TSLA", META: "NASDAQ:META"
 };
 
-function toTradingViewSymbol(symbol: string) {
+function isTradingViewWidgetSupported(symbol: string) {\n  const raw = symbol.trim().toUpperCase();\n  if (raw.endsWith(".NS") || raw.startsWith("NSE:")) return false;\n  return true;\n}\n\nfunction toTradingViewSymbol(symbol: string) {
   const raw = symbol.trim().toUpperCase();
   if (!raw) return "OANDA:XAUUSD";
   if (raw.includes(":")) return raw;
@@ -20,7 +20,7 @@ function toTradingViewSymbol(symbol: string) {
 export default function TradingViewXauusdChart({ symbol }: { symbol: string }) {
   const container = useRef<HTMLDivElement>(null);
   const normalized = symbol.trim().toUpperCase() || "XAUUSD";
-  const tvSymbol = toTradingViewSymbol(normalized);
+  const tvSymbol = toTradingViewSymbol(normalized);\n  const showChart = isTradingViewWidgetSupported(normalized);
 
   useEffect(() => {
     const host = container.current;
