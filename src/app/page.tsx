@@ -20,6 +20,7 @@ const pageText: Record<Language,{search:string;description:string;button:string;
 
 function HomeContent() {
   const [symbol, setSymbol] = useState("XAUUSD");
+  const [searchInput, setSearchInput] = useState("XAUUSD");
   const {language,setLanguage}=useLanguage();
   const t=pageText[language];
   const normalizeSymbol=(input:string)=>{const raw=input.trim().toUpperCase();if(!raw)return "OANDA:XAUUSD";if(raw.includes(":"))return raw;const aliases:Record<string,string>={APPLE:"AAPL",MICROSOFT:"MSFT",TESLA:"TSLA",NVIDIA:"NVDA",GOOGLE:"GOOGL",AMAZON:"AMZN",META:"META"};const resolved=aliases[raw]??raw;const fx=["EURUSD","GBPUSD","USDJPY","USDCHF","AUDUSD","USDCAD","NZDUSD","EURGBP","EURJPY","GBPJPY","AUDJPY"];if(fx.includes(resolved))return "OANDA:"+resolved;if(["XAUUSD","XAGUSD"].includes(resolved))return "OANDA:"+resolved;if(["BTCUSD","ETHUSD"].includes(resolved))return "COINBASE:"+resolved;return "NASDAQ:"+resolved;};
@@ -34,8 +35,8 @@ function HomeContent() {
               <select value={language} onChange={e=>setLanguage(e.target.value as Language)} aria-label={t.language} className="rounded border border-[#263444] bg-[#080d13] px-3 py-2 text-xs text-[#e5edf5] outline-none focus:border-[#5eead4]">
                 {languages.map(l=><option key={l.code} value={l.code}>{l.label}</option>)}
               </select>
-              <form className="flex w-full max-w-md gap-2" onSubmit={(event)=>{event.preventDefault();const value=new FormData(event.currentTarget).get("symbol");if(typeof value==="string"&&value.trim())setSymbol(normalizeSymbol(value));}}>
-                <input name="symbol" aria-label="Search market symbol" defaultValue="XAUUSD" placeholder={t.placeholder} className="min-w-0 flex-1 rounded border border-[#263444] bg-[#080d13] px-3 py-2 text-sm font-mono text-[#e5edf5] outline-none placeholder:text-[#536174] focus:border-[#5eead4]" />
+              <form className="flex w-full max-w-md gap-2" onSubmit={(event)=>{event.preventDefault();const value=new FormData(event.currentTarget).get("symbol");if(typeof value==="string"&&value.trim()){setSearchInput(value.trim().toUpperCase());setSymbol(normalizeSymbol(value));}}}>
+                <input name="symbol" aria-label="Search market symbol" value={searchInput} onChange={e=>setSearchInput(e.target.value)} placeholder={t.placeholder} className="min-w-0 flex-1 rounded border border-[#263444] bg-[#080d13] px-3 py-2 text-sm font-mono text-[#e5edf5] outline-none placeholder:text-[#536174] focus:border-[#5eead4]" />
                 <button type="submit" className="rounded border border-[#23413d] bg-[#0c1516] px-4 py-2 text-[10px] font-bold tracking-wider text-[#5eead4] hover:border-[#5eead4]">{t.button}</button>
               </form>
             </div>
