@@ -6,7 +6,7 @@ import XauusdDecisionPanel from "./xauusd-decision-panel";
 import { LanguageProvider, languages, useLanguage, type Language } from "./language-context";
 
 const pageText: Record<Language,{search:string;description:string;button:string;placeholder:string;language:string}> = {
-  en:{search:"MARKET SEARCH",description:"Search a symbol here to keep the TradingView chart and intelligence panel synchronized.",button:"SEARCH",placeholder:"XAUUSD, EURUSD, AAPL...",language:"LANGUAGE"},
+  en:{search:"MARKET GO TO CHART",description:"",button:"SEARCH",placeholder:"AAPL, EURUSD, BTCUSD, XAUUSD...",language:"LANGUAGE"},
   hi:{search:"मार्केट सर्च",description:"TradingView चार्ट और इंटेलिजेंस पैनल को सिंक्रोनाइज़ रखने के लिए यहाँ सिंबल खोजें।",button:"खोजें",placeholder:"XAUUSD, EURUSD, AAPL...",language:"भाषा"},
   mr:{search:"मार्केट शोध",description:"TradingView चार्ट आणि इंटेलिजन्स पॅनेल समक्रमित ठेवण्यासाठी येथे सिंबल शोधा.",button:"शोधा",placeholder:"XAUUSD, EURUSD, AAPL...",language:"भाषा"},
   es:{search:"BÚSQUEDA DE MERCADO",description:"Busca un símbolo aquí para mantener sincronizados el gráfico de TradingView y el panel de inteligencia.",button:"BUSCAR",placeholder:"XAUUSD, EURUSD, AAPL...",language:"IDIOMA"},
@@ -22,6 +22,7 @@ function HomeContent() {
   const [symbol, setSymbol] = useState("XAUUSD");
   const {language,setLanguage}=useLanguage();
   const t=pageText[language];
+  const normalizeSymbol=(input:string)=>{const raw=input.trim().toUpperCase();if(!raw)return "XAUUSD";if(raw.includes(":"))return raw;const fx=["EURUSD","GBPUSD","USDJPY","USDCHF","AUDUSD","USDCAD","NZDUSD","EURGBP","EURJPY","GBPJPY","AUDJPY"];if(fx.includes(raw))return "OANDA:"+raw;if(["XAUUSD","XAGUSD"].includes(raw))return "OANDA:"+raw;if(["BTCUSD","ETHUSD"].includes(raw))return "COINBASE:"+raw;return "NASDAQ:"+raw;};
   return (
     <main dir={language==="ar"?"rtl":"ltr"} className="min-h-screen bg-[#070b10] p-3 md:p-5">
       <div className="mx-auto max-w-[1700px]">
@@ -33,7 +34,7 @@ function HomeContent() {
               <select value={language} onChange={e=>setLanguage(e.target.value as Language)} aria-label={t.language} className="rounded border border-[#263444] bg-[#080d13] px-3 py-2 text-xs text-[#e5edf5] outline-none focus:border-[#5eead4]">
                 {languages.map(l=><option key={l.code} value={l.code}>{l.label}</option>)}
               </select>
-              <form className="flex w-full max-w-md gap-2" onSubmit={(event)=>{event.preventDefault();const value=new FormData(event.currentTarget).get("symbol");if(typeof value==="string"&&value.trim())setSymbol(value.trim().toUpperCase());}}>
+              <form className="flex w-full max-w-md gap-2" onSubmit={(event)=>{event.preventDefault();const value=new FormData(event.currentTarget).get("symbol");if(typeof value==="string"&&value.trim())setSymbol(normalizeSymbol(value));}}>
                 <input name="symbol" aria-label="Search market symbol" defaultValue="XAUUSD" placeholder={t.placeholder} className="min-w-0 flex-1 rounded border border-[#263444] bg-[#080d13] px-3 py-2 text-sm font-mono text-[#e5edf5] outline-none placeholder:text-[#536174] focus:border-[#5eead4]" />
                 <button type="submit" className="rounded border border-[#23413d] bg-[#0c1516] px-4 py-2 text-[10px] font-bold tracking-wider text-[#5eead4] hover:border-[#5eead4]">{t.button}</button>
               </form>
@@ -41,7 +42,7 @@ function HomeContent() {
           </div>
         </div>
         <TradingViewXauusdChart symbol={symbol} />
-        <XauusdDecisionPanel symbol={symbol} />
+        {symbol==="XAUUSD"||symbol==="OANDA:XAUUSD" ? <XauusdDecisionPanel symbol="XAUUSD" /> : <div className="mt-4 rounded border border-[#1b2532] bg-[#0c1118] p-4 text-xs text-[#7f8da1]">TradingView chart mode is active for <b className="text-[#e5edf5]">{symbol}</b>. Use the chart&apos;s built-in symbol search to browse stocks, forex pairs, crypto, indices, commodities and other available instruments.</div>}
       </div>
     </main>
   );
