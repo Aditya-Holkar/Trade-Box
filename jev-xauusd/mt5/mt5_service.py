@@ -3,6 +3,7 @@ import os
 from typing import Optional
 import MetaTrader5 as mt5
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 HOST=os.getenv("MT5_BRIDGE_HOST","127.0.0.1")
@@ -16,7 +17,7 @@ app=FastAPI(title="Standalone Jev XAUUSD MT5 Bridge",version="1.1.0")
 @app.middleware("http")
 async def bridge_auth(request: Request, call_next):
     if BRIDGE_TOKEN and request.headers.get("X-MT5-Bridge-Token") != BRIDGE_TOKEN:
-        return __import__("fastapi").responses.JSONResponse({"detail":"Unauthorized MT5 bridge request"},status_code=401)
+        return JSONResponse({"detail":"Unauthorized MT5 bridge request"},status_code=401)
     return await call_next(request)
 
 TIMEFRAMES={"M1":mt5.TIMEFRAME_M1,"M5":mt5.TIMEFRAME_M5,"M15":mt5.TIMEFRAME_M15,"M30":mt5.TIMEFRAME_M30,"H1":mt5.TIMEFRAME_H1,"H4":mt5.TIMEFRAME_H4,"D1":mt5.TIMEFRAME_D1}
