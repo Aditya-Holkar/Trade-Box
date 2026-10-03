@@ -37,6 +37,60 @@ export interface TraderSnapshot {
  * provider/model is connected. It is intentionally a demo signal,
  * not a profitability claim.
  */
+export async function jevDecision(features: FeatureState): Promise<Decision> {
+  if (!config.jevApiKey) return mockDecision(features);
+  const state = {
+    market: "XAUUSD",
+    horizonMinutes: config.horizonMinutes,
+    price: { bid: features.bid, ask: features.ask, mid: features.mid, spread: features.spread, spreadBps: features.spreadBps },
+    returnsBps: features.returnsBps,
+    technical: features.technical,
+    market: features.market,
+    volume: features.volume,
+    recentPrices: features.recentPrices,
+  };
+
+  const response = await fetch(config.jevEndpoint, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${config.jevApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: config.jevModelId,
+      state,
+      questions: {
+        direction: {
+          type: "choice",
+          instructions: "For XAUUSD, which direction has the strongest evidence over the configured horizon after considering spread, momentum, trend, RSI, EMAs, ATR, volume, session and volatility? This is a decision signal, not a guarantee.",
+          criteria: {
+            buy: "XAUUSD is more likely to rise enough to justify a long entry after the spread.",
+            sell: "XAUUSD is more likely to fall enough to justify a short entry after the spread.",
+            hold: "Evidence is insufficient, conflicting, or market conditions make a trade unattractive.",
+          },
+        },
+      },
+    }),
+    cache: "no-store",
+  });
+
+  const json: any = await response.json();
+  if (!response.ok) throw new Error(json?.error?.message ?? "Jev API request failed");
+
+  const answer = json?.answers?.direction;
+  const probabilities = answer?.probabilities ?? {};
+  const buy = Number(probabilities.buy ?? 0);
+  const sell = Number(probabilities.sell ?? 0);
+  const hold = Number(probabilities.hold ?? Math.max(0, 1 - Math.max(buy, sell)));
+  const action: Action = answer?.choice === "buy" ? "buy" : answer?.choice === "sell" ? "sell" : "hold";
+
+  return {
+    action,
+    probabilities: { buy, sell, hold },
+    reason: `Jev ${json?.model ?? config.jevModelId}: ${answer?.choice ?? "hold"} (confidence ${Number(answer?.confidence ?? Math.max(buy, sell)).toFixed(3)})`,
+  };
+}
+
 export function mockDecision(features: FeatureState): Decision {
   const trend = features.market.trend === "up" ? 0.10 : features.market.trend === "down" ? -0.10 : 0;
   const momentum = Math.tanh(features.returnsBps.last15m / 10) * 0.20;
@@ -85,7 +139,7 @@ export async function getXauusdSnapshot(): Promise<TraderSnapshot> {
   ]);
 
   const features = calculateXauusdFeatures(candlesResult.candles, tick);
-  const decision = mockDecision(features);
+  const decision = config.model === "jev" ? await jevDecision(features) : mockDecision(features);
   const risk = riskCheck(features, decision, account, positionsResult.positions);
 
   let execution: TraderSnapshot["execution"];
