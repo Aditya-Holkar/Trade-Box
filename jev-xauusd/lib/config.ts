@@ -16,6 +16,7 @@ export const config = {
   timeframe: env("MT5_TIMEFRAME", "M5")!,
   horizonMinutes: num("HORIZON_MINUTES", 15),
   mt5BridgeUrl: env("MT5_BRIDGE_URL", "http://127.0.0.1:8765")!,
+  mt5BridgeToken: env("MT5_BRIDGE_TOKEN", "")!,
   mt5RequestTimeoutMs: num("MT5_REQUEST_TIMEOUT_MS", 5000),
   model: env("MODEL", "jev") as "mock" | "jev",
   jevApiKey: env("JEVMODEL_API_KEY", "")!,
