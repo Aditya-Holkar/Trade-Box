@@ -27,13 +27,13 @@ export default function JevXauusdPage() {
     }catch(e){setError(e instanceof Error?e.message:"Unable to connect");}
     finally{setLoading(false);}
   },[]);
-  useEffect(()=>{refresh();const t=setInterval(refresh,5000);return()=>clearInterval(t)},[refresh]);
+  useEffect(()=>{refresh();},[refresh]);
 
   return <main className="min-h-screen bg-[#08090c] px-4 py-6 text-zinc-100">
     <div className="mx-auto max-w-7xl">
       <header className="mb-5 flex items-center justify-between gap-4 border-b border-zinc-800 pb-5">
-        <div><div className="text-xs font-bold tracking-[.2em] text-teal-300">JEV / XAUUSD</div><h1 className="mt-1 text-2xl font-semibold">Standalone Decision Engine</h1><p className="mt-1 text-sm text-zinc-500">MT5 → features → Jev → risk gate → optional MT5 execution.</p></div>
-        <button onClick={refresh} className="rounded border border-zinc-700 px-4 py-2 text-sm hover:border-teal-300">{loading?"Refreshing…":"Refresh"}</button>
+        <div><div className="text-xs font-bold tracking-[.2em] text-teal-300">JEV / XAUUSD</div><h1 className="mt-1 text-2xl font-semibold">Standalone Decision Engine</h1><p className="mt-1 text-sm text-zinc-500">Cloud market data → features → Jev → risk gate.</p></div>
+        <button onClick={refresh} disabled={loading} className="rounded border border-zinc-700 px-4 py-2 text-sm hover:border-teal-300 disabled:cursor-not-allowed disabled:opacity-50">{loading?"Refreshing…":"Refresh"}</button>
       </header>
       {error&&<div className="mb-5 rounded border border-red-900 bg-red-950/30 p-4 text-sm text-red-300">Market data: {error}</div>}
       {data&&<div className="space-y-4">
